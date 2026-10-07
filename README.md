@@ -9,8 +9,12 @@ download a print-ready PNG, PDF or SVG.
 ## Features
 
 - **Location search** with multiple results to choose from (keyboard navigable), plus
-  click-to-place, a draggable marker (also movable with the arrow keys), manual
-  latitude/longitude entry (pasting `48.17, 11.56` fills both fields) and “use my position”.
+  click-to-place, manual latitude/longitude entry (pasting `48.17, 11.56` fills both fields) and
+  "use my position".
+- **Easy fine-tuning of the spot**: drag the heart (or pin) on the map and the poster follows
+  live; the icon lifts while dragging and a dot marks the exact point. Use the ← ↑ ↓ → buttons or
+  the arrow keys for small steps, and **Precise placement** to zoom in close without changing the
+  poster's zoom.
 - **Keyhole effect**: the map is revealed through a heart, circle, rounded square, diamond,
   hexagon or star. Outside the shape the map can be hidden, faded or fully visible. The editor
   map shows the same keyhole, anchored to the selected point, so what you see there is what is
@@ -167,7 +171,10 @@ The picker, editor keyhole, preview, export and the layout tests in
 
 - [ ] Search “Brandenburger Tor”, pick a result with ↓/Enter; map flies there, poster updates.
 - [ ] Click elsewhere on the map; marker moves and the place name/label update.
-- [ ] Drag the marker, and nudge it with arrow keys (Shift for bigger steps).
+- [ ] Drag the heart: the poster follows while dragging, the place name updates after the drop.
+- [ ] Nudge with the arrow buttons and the arrow keys (Shift for bigger steps).
+- [ ] Precise placement: zooming does not change the "Map zoom" slider; Done returns to the
+      linked view.
 - [ ] Zoom the editor map; the “Map zoom” slider and poster follow (and vice versa).
 - [ ] Switch each shape and outside mode; the keyhole stays on the location while panning.
 - [ ] Edit title/names/label; counters update; long text shrinks to fit.

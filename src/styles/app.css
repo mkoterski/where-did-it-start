@@ -790,31 +790,170 @@ select {
   z-index: 2;
 }
 
-.editor-marker {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: grab;
-  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 35%));
-  touch-action: none;
+.interactive-map-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.editor-marker:active {
+/* The draggable spot: a 48px grab area around a 36px icon. MapLibre positions the
+   button with its own transform, so all visual effects go on the children. */
+.editor-marker {
+  width: 48px;
+  height: 48px;
+  padding: 6px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: grab;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.editor-marker.is-dragging {
   cursor: grabbing;
 }
 
-.editor-marker svg {
+.editor-marker__icon {
+  display: block;
+  width: 36px;
+  height: 36px;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 35%));
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease;
+}
+
+.editor-marker__icon svg {
   display: block;
   width: 100%;
   height: 100%;
 }
 
+.editor-marker:hover .editor-marker__icon,
+.editor-marker:focus-visible .editor-marker__icon {
+  transform: scale(1.12);
+}
+
+/* While dragging, lift the icon so the finger or cursor does not hide the exact spot,
+   which is marked by a small dot. */
+.editor-marker.is-dragging .editor-marker__icon {
+  transform: translateY(-22px) scale(1.15);
+  filter: drop-shadow(0 8px 6px rgb(0 0 0 / 30%));
+}
+
+.editor-marker--pin.is-dragging .editor-marker__icon {
+  transform: translateY(-10px) scale(1.1);
+}
+
+.editor-marker__dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: #111;
+  box-shadow: 0 0 0 2px #fff;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.editor-marker--pin .editor-marker__dot {
+  top: auto;
+  bottom: 9px;
+  margin: 0 0 -4px -4px;
+}
+
+.editor-marker.is-dragging .editor-marker__dot {
+  opacity: 1;
+}
+
+/* A soft pulse until the spot has been moved once. */
+.editor-marker--hint::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  color: var(--accent);
+  animation: marker-pulse 1.6s ease-out 4;
+  pointer-events: none;
+}
+
+@keyframes marker-pulse {
+  from {
+    transform: scale(0.7);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
 .editor-marker:focus-visible {
   outline: 2px solid var(--focus);
-  outline-offset: 3px;
-  border-radius: 50%;
+  outline-offset: 0;
+}
+
+.map-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.map-tools__hint {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.map-tools__hint strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.map-tools__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.map-tools__nudge {
+  display: flex;
+  gap: 4px;
+}
+
+.button--small {
+  min-height: 40px;
+  padding: 6px 14px;
+  font-size: 0.9rem;
+}
+
+.button--icon {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.map-tools__precise.is-active {
+  background: var(--text);
+  border-color: var(--text);
+  color: #fff;
+}
+
+.interactive-map__precise-note {
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .map-chip {
@@ -1131,5 +1270,9 @@ select {
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
+  }
+
+  .editor-marker--hint::before {
+    animation: none;
   }
 }

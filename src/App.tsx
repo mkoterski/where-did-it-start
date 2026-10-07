@@ -57,10 +57,11 @@ export default function App() {
     [dispatch],
   );
 
+  /** `final` is false for live updates while dragging; the place lookup waits for the drop. */
   const pickPoint = useCallback(
-    (latitude: number, longitude: number) => {
+    (latitude: number, longitude: number, final = true) => {
       dispatch({ type: 'moveLocation', latitude, longitude });
-      resolvePlace(latitude, longitude);
+      if (final) resolvePlace(latitude, longitude);
     },
     [dispatch, resolvePlace],
   );

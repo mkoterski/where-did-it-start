@@ -22,13 +22,29 @@ export interface InteractiveMapHandle {
 interface InteractiveMapProps {
   config: PosterConfig;
   layout: PosterLayout;
-  onPick(latitude: number, longitude: number): void;
+  /**
+   * The spot was moved. `final` is false while the user is still dragging or nudging (live
+   * preview) and true once they let go, which is when place details should be looked up.
+   */
+  onPick(latitude: number, longitude: number, final?: boolean): void;
   onZoomChange(zoom: number): void;
   ref?: Ref<InteractiveMapHandle>;
 }
 
 const WORLD_VIEW = { center: [10, 30] as [number, number], zoom: 1.2 };
 const NUDGE_PX = 4;
+/** How much closer than the linked view the precise placement mode zooms in. */
+const PRECISE_ZOOM_STEP = 3;
+const PRECISE_MAX_ZOOM = 20;
+const COMMIT_DELAY_MS = 400;
+
+type Direction = 'up' | 'down' | 'left' | 'right';
+const NUDGES: Record<Direction, { delta: [number, number]; label: string; arrow: string }> = {
+  left: { delta: [-1, 0], label: 'Move spot left', arrow: '←' },
+  up: { delta: [0, -1], label: 'Move spot up', arrow: '↑' },
+  down: { delta: [0, 1], label: 'Move spot down', arrow: '↓' },
+  right: { delta: [1, 0], label: 'Move spot right', arrow: '→' },
+};
 const ARROWS: Record<string, [number, number]> = {
   ArrowUp: [0, -1],
   ArrowDown: [0, 1],
@@ -45,11 +61,16 @@ function markerSvg(shape: MarkerShape, color: string): string {
   const fill = shape === 'none' ? 'none' : color;
   const stroke = shape === 'none' ? color : '#fff';
   return (
+    `<span class="editor-marker__icon">` +
     `<svg viewBox="-6 -6 112 112" aria-hidden="true" focusable="false">` +
     `<path d="${def.path}" fill="${fill}" fill-rule="${def.fillRule ?? 'nonzero'}" ` +
-    `stroke="${stroke}" stroke-width="8" paint-order="stroke" stroke-linejoin="round"/></svg>`
+    `stroke="${stroke}" stroke-width="8" paint-order="stroke" stroke-linejoin="round"/></svg>` +
+    `</span><span class="editor-marker__dot" aria-hidden="true"></span>`
   );
 }
+
+/** Pulse the marker until the user has moved it once, so it reads as something to grab. */
+let markerHintDone = false;
 
 /**
  * The editor map. Shows the same monochrome style as the poster (plus labels), a keyhole
@@ -67,8 +88,15 @@ export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: In
   const overlayRef = useRef<SVGSVGElement | null>(null);
   const programmatic = useRef(false);
   const appliedStyleRef = useRef('');
+  const draggingRef = useRef(false);
+  const commitTimer = useRef<number | undefined>(undefined);
   const [keyhole, setKeyhole] = useState(320);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error' | 'unsupported'>('loading');
+  const [precise, setPrecise] = useState(false);
+  const preciseRef = useRef(false);
+  useEffect(() => {
+    preciseRef.current = precise;
+  }, [precise]);
 
   const { location, zoom } = config;
   const offset = Math.log2(keyhole / layout.frameExtent);
@@ -109,8 +137,44 @@ export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: In
     if (!map.isMoving()) programmatic.current = false;
   };
 
+  /** Called whenever the marker moved; the final commit is debounced for nudges. */
+  const reportMove = useCallback((final: boolean) => {
+    const point = markerRef.current?.getLngLat();
+    if (!point) return;
+    window.clearTimeout(commitTimer.current);
+    if (final) {
+      live.current.onPick(point.lat, point.lng, true);
+      return;
+    }
+    live.current.onPick(point.lat, point.lng, false);
+    commitTimer.current = window.setTimeout(
+      () => live.current.onPick(point.lat, point.lng, true),
+      COMMIT_DELAY_MS,
+    );
+  }, []);
+
+  /** Moves the marker by a few screen pixels (arrow keys and nudge buttons). */
+  const nudge = useCallback(
+    (dx: number, dy: number) => {
+      const map = mapRef.current;
+      const marker = markerRef.current;
+      if (!map || !marker) return;
+      markerHintDone = true;
+      marker.getElement().classList.remove('editor-marker--hint');
+      const screen = map.project(marker.getLngLat());
+      marker.setLngLat(map.unproject([screen.x + dx, screen.y + dy]));
+      updateOverlay();
+      reportMove(false);
+    },
+    [updateOverlay, reportMove],
+  );
+
+  useEffect(() => () => window.clearTimeout(commitTimer.current), []);
+
   useImperativeHandle(ref, () => ({
     focusOn(latitude, longitude) {
+      setPrecise(false);
+      preciseRef.current = false;
       runProgrammatic((map) =>
         map.flyTo({
           center: [longitude, latitude],
@@ -185,11 +249,12 @@ export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: In
     });
     map.on('zoom', () => {
       const { config: current, offset: currentOffset } = live.current;
-      if (programmatic.current || !current.location) return;
+      // In precise placement mode the editor zooms independently of the poster.
+      if (programmatic.current || preciseRef.current || !current.location) return;
       const next = clampZoom(map.getZoom() - currentOffset);
       if (Math.abs(next - current.zoom) > 0.001) live.current.onZoomChange(next);
     });
-    map.on('click', (event) => live.current.onPick(event.lngLat.lat, event.lngLat.lng));
+    map.on('click', (event) => live.current.onPick(event.lngLat.lat, event.lngLat.lng, true));
 
     const observer = new ResizeObserver(() => {
       map.resize();
@@ -239,31 +304,55 @@ export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: In
 
     const element = document.createElement('button');
     element.type = 'button';
-    element.className = `editor-marker editor-marker--${markerShape}`;
+    element.className = `editor-marker editor-marker--${markerShape}${
+      markerHintDone ? '' : ' editor-marker--hint'
+    }`;
     element.setAttribute(
       'aria-label',
       'Selected location. Drag it, or use the arrow keys to move it (hold Shift for larger steps).',
     );
     element.innerHTML = markerSvg(markerShape, markerColor);
 
+    // The icon is 36px inside a 48px grab area (6px padding); 36px / 112 viewBox units.
+    const unitPx = 36 / 112;
     const anchorPoint = markerAnchor(markerShape);
     const marker = new maplibregl.Marker({
       element,
       draggable: true,
+      clickTolerance: 2,
       anchor: markerShape === 'pin' ? 'bottom' : 'center',
-      offset: markerShape === 'pin' ? [0, 3] : [0, (50 - anchorPoint.y) * 0.34],
+      offset:
+        markerShape === 'pin'
+          ? [0, 6 + (106 - anchorPoint.y) * unitPx]
+          : [0, (50 - anchorPoint.y) * unitPx],
     })
       .setLngLat([current.longitude, current.latitude])
       .addTo(map);
 
-    const commit = () => {
-      const point = marker.getLngLat();
-      live.current.onPick(point.lat, point.lng);
-    };
-    marker.on('drag', () => updateOverlay());
-    marker.on('dragend', commit);
+    // Live preview while dragging, throttled to one update per frame.
+    let frame = 0;
+    marker.on('dragstart', () => {
+      draggingRef.current = true;
+      markerHintDone = true;
+      element.classList.remove('editor-marker--hint');
+      element.classList.add('is-dragging');
+    });
+    marker.on('drag', () => {
+      updateOverlay();
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        reportMove(false);
+      });
+    });
+    marker.on('dragend', () => {
+      cancelAnimationFrame(frame);
+      frame = 0;
+      draggingRef.current = false;
+      element.classList.remove('is-dragging');
+      reportMove(true);
+    });
 
-    let keyTimer: number | undefined;
     element.addEventListener('click', (event) => event.stopPropagation());
     element.addEventListener('keydown', (event) => {
       const direction = ARROWS[event.key];
@@ -271,18 +360,12 @@ export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: In
       event.preventDefault();
       event.stopPropagation();
       const step = event.shiftKey ? NUDGE_PX * 5 : NUDGE_PX;
-      const screen = map.project(marker.getLngLat());
-      marker.setLngLat(
-        map.unproject([screen.x + direction[0] * step, screen.y + direction[1] * step]),
-      );
-      updateOverlay();
-      window.clearTimeout(keyTimer);
-      keyTimer = window.setTimeout(commit, 350);
+      nudge(direction[0] * step, direction[1] * step);
     });
 
     markerRef.current = marker;
     updateOverlay();
-    return () => window.clearTimeout(keyTimer);
+    return () => cancelAnimationFrame(frame);
   }, [markerShape, markerColor, location === null]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Follow location changes (search, typed coordinates, drag) without fighting the user.
@@ -303,16 +386,24 @@ export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: In
           essential: true,
         }),
       );
-    } else if (!map.getBounds().contains([location.longitude, location.latitude])) {
+    } else if (
+      !draggingRef.current &&
+      !map.getBounds().contains([location.longitude, location.latitude])
+    ) {
       runProgrammatic((m) => m.easeTo({ center: [location.longitude, location.latitude] }));
     }
     updateOverlay();
   }, [location]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Keep the editor zoom in sync with the poster zoom (slider, shape size, map resize).
+  // Keep the editor zoom in sync with the poster zoom (slider, shape size, map resize),
+  // except in precise placement mode, where the editor zooms in on its own.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !location) return;
+    if (precise) {
+      map.setMaxZoom(PRECISE_MAX_ZOOM);
+      return;
+    }
     map.setMinZoom(Math.max(0, ZOOM_RANGE.min + offset));
     map.setMaxZoom(Math.min(22, ZOOM_RANGE.max + offset));
     const target = zoom + offset;
@@ -326,7 +417,7 @@ export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: In
       );
     }
     updateOverlay();
-  }, [zoom, offset, location]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [zoom, offset, location, precise]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     updateOverlay();
@@ -334,6 +425,7 @@ export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: In
 
   const recenter = () => {
     if (!location) return;
+    setPrecise(false);
     runProgrammatic((map) =>
       map.flyTo({
         center: [location.longitude, location.latitude],
@@ -343,38 +435,101 @@ export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: In
     );
   };
 
+  const togglePrecise = () => {
+    if (!location) return;
+    const next = !precise;
+    preciseRef.current = next;
+    setPrecise(next);
+    runProgrammatic((map) =>
+      map.easeTo({
+        center: [location.longitude, location.latitude],
+        zoom: next ? Math.min(PRECISE_MAX_ZOOM, zoom + offset + PRECISE_ZOOM_STEP) : zoom + offset,
+        duration: 700,
+      }),
+    );
+  };
+
   return (
-    <div className="interactive-map" ref={wrapperRef}>
-      <div
-        ref={containerRef}
-        className="interactive-map__canvas"
-        role="application"
-        aria-label="Map. Click to place the location, drag to pan, scroll or use + and − to zoom."
-      />
-      {location ? (
-        <button type="button" className="map-chip interactive-map__recenter" onClick={recenter}>
-          Re-center
-        </button>
-      ) : (
-        <p className="map-chip interactive-map__hint">
-          Click anywhere on the map to place your spot
-        </p>
-      )}
-      {status === 'loading' ? (
-        <p className="interactive-map__status" role="status">
-          Loading map…
-        </p>
-      ) : null}
-      {status === 'error' ? (
-        <p className="interactive-map__status interactive-map__status--error" role="alert">
-          The map could not be loaded. Check your connection and reload the page.
-        </p>
-      ) : null}
-      {status === 'unsupported' ? (
-        <p className="interactive-map__status interactive-map__status--error" role="alert">
-          Your browser cannot display the interactive map (WebGL is unavailable). You can still
-          search for a place or type coordinates.
-        </p>
+    <div className="interactive-map-block">
+      <div className="interactive-map" ref={wrapperRef}>
+        <div
+          ref={containerRef}
+          className="interactive-map__canvas"
+          role="application"
+          aria-label="Map. Click to place the location, drag to pan, scroll or use + and − to zoom."
+        />
+        {location ? (
+          <button type="button" className="map-chip interactive-map__recenter" onClick={recenter}>
+            Re-center
+          </button>
+        ) : (
+          <p className="map-chip interactive-map__hint">
+            Click anywhere on the map to place your spot
+          </p>
+        )}
+        {location && precise ? (
+          <p className="map-chip interactive-map__precise-note" role="status">
+            Precise placement · the poster zoom stays as it is
+          </p>
+        ) : null}
+        {status === 'loading' ? (
+          <p className="interactive-map__status" role="status">
+            Loading map…
+          </p>
+        ) : null}
+        {status === 'error' ? (
+          <p className="interactive-map__status interactive-map__status--error" role="alert">
+            The map could not be loaded. Check your connection and reload the page.
+          </p>
+        ) : null}
+        {status === 'unsupported' ? (
+          <p className="interactive-map__status interactive-map__status--error" role="alert">
+            Your browser cannot display the interactive map (WebGL is unavailable). You can still
+            search for a place or type coordinates.
+          </p>
+        ) : null}
+      </div>
+      {location && status !== 'unsupported' ? (
+        <div className="map-tools">
+          <p className="map-tools__hint">
+            <strong>
+              Drag the{' '}
+              {markerShape === 'none' ? 'marker' : getShape(markerShape).label.toLowerCase()}
+            </strong>{' '}
+            or click the map to move your spot. Use the arrows for small steps.
+          </p>
+          <div className="map-tools__row">
+            <button
+              type="button"
+              className={`button button--small map-tools__precise${precise ? ' is-active' : ''}`}
+              aria-pressed={precise}
+              onClick={togglePrecise}
+            >
+              {precise ? 'Done' : 'Precise placement'}
+            </button>
+            <div
+              className="map-tools__nudge"
+              role="group"
+              aria-label="Move the spot in small steps"
+            >
+              {(Object.keys(NUDGES) as Direction[]).map((direction) => {
+                const { delta, label, arrow } = NUDGES[direction];
+                return (
+                  <button
+                    key={direction}
+                    type="button"
+                    className="button button--icon"
+                    aria-label={label}
+                    title={label}
+                    onClick={() => nudge(delta[0] * NUDGE_PX, delta[1] * NUDGE_PX)}
+                  >
+                    <span aria-hidden="true">{arrow}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );

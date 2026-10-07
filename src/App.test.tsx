@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
@@ -6,8 +6,16 @@ import type { LocationSelection } from './domain/types';
 import { STORAGE_KEY } from './state/usePosterState';
 
 // WebGL maps cannot run in jsdom; their behaviour is covered by the browser QA checklist.
+const mapProps = vi.hoisted(() => ({
+  current: null as null | { onPick(latitude: number, longitude: number, final?: boolean): void },
+}));
 vi.mock('./components/InteractiveMap', () => ({
-  InteractiveMap: () => <div data-testid="interactive-map" />,
+  InteractiveMap: (props: {
+    onPick(latitude: number, longitude: number, final?: boolean): void;
+  }) => {
+    mapProps.current = props;
+    return <div data-testid="interactive-map" />;
+  },
 }));
 vi.mock('./components/PosterMap', () => ({
   PosterMap: () => <div data-testid="poster-map" />,
@@ -193,6 +201,31 @@ describe('App', () => {
     await waitFor(() =>
       expect(geocoder.reverse).toHaveBeenCalledWith(52.52, 13.4, expect.any(AbortSignal)),
     );
+  });
+
+  it('previews a dragged spot live and looks up the place only when it is dropped', async () => {
+    const user = userEvent.setup();
+    geocoder.reverse.mockResolvedValue({
+      ...BERLIN,
+      latitude: 52.52,
+      longitude: 13.41,
+      city: 'Berlin-Mitte',
+    });
+    render(<App />);
+    await searchAndSelect(user);
+
+    act(() => mapProps.current!.onPick(52.515, 13.39, false));
+    act(() => mapProps.current!.onPick(52.52, 13.41, false));
+    expect(posterText()).toContain('52.52000°N 13.41000°E');
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(geocoder.reverse).not.toHaveBeenCalled();
+
+    act(() => mapProps.current!.onPick(52.52, 13.41, true));
+    await waitFor(() =>
+      expect(geocoder.reverse).toHaveBeenCalledWith(52.52, 13.41, expect.any(AbortSignal)),
+    );
+    expect(geocoder.reverse).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(posterText()).toContain('Berlin-Mitte 52.52000°N 13.41000°E'));
   });
 
   it('resets the design, keeps the place, and can undo', async () => {

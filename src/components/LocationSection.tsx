@@ -16,7 +16,7 @@ interface LocationSectionProps {
   mapRef: Ref<InteractiveMapHandle>;
   reverseState: ReverseState;
   onSelect(location: LocationSelection): void;
-  onPick(latitude: number, longitude: number): void;
+  onPick(latitude: number, longitude: number, final?: boolean): void;
   onZoomChange(zoom: number): void;
 }
 
@@ -113,7 +113,7 @@ export function LocationSection({
           key={location ? `${location.latitude},${location.longitude}` : 'empty'}
           latitude={location?.latitude ?? null}
           longitude={location?.longitude ?? null}
-          onApply={onPick}
+          onApply={(latitude, longitude) => onPick(latitude, longitude)}
         />
         {canLocate ? (
           <div className="geolocate">
