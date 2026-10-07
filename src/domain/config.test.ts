@@ -69,6 +69,11 @@ describe('sanitizeConfig', () => {
     expect(sanitizeConfig({ bodyFont: 'comic-sans' }).bodyFont).toBe('jost');
   });
 
+  it('validates the water colour', () => {
+    expect(sanitizeConfig({ waterColor: '#ABCDEF' }).waterColor).toBe('#abcdef');
+    expect(sanitizeConfig({ waterColor: 'blue' }).waterColor).toBe(DEFAULT_CONFIG.waterColor);
+  });
+
   it('rejects invalid locations', () => {
     expect(sanitizeConfig({ location: { latitude: 120, longitude: 0 } }).location).toBeNull();
     expect(sanitizeConfig({ location: { latitude: 'x', longitude: 0 } }).location).toBeNull();

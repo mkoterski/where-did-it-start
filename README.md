@@ -4,7 +4,7 @@ A single-page app for creating a personalised **“where it all began…”** ma
 the place your story started, frame it in a heart (or another shape), add your names and
 download a print-ready PNG, PDF or SVG.
 
-![Example poster: black-and-white map of Berlin around Potsdamer Platz in a heart, a red brush-painted heart marker, “Where it all began…”, “Anita & Matthias” and “Berlin 52.50971°N 13.37605°E”](docs/example-poster.png)
+![Example poster: black-and-white map of Berlin around Potsdamer Platz in a heart with light-blue rivers, a red brush-painted heart marker, “Where it all began…”, “Anita & Matthias” and “Berlin 52.50971°N 13.37605°E”](docs/example-poster.png)
 
 ## Features
 
@@ -29,7 +29,7 @@ download a print-ready PNG, PDF or SVG.
   coordinates in decimal (`48.15838°N 11.50194°E`) or degrees/minutes/seconds, four title
   fonts, four fonts for the names and place line (modern sans, elegant serif, vintage sans,
   typewriter), title size and alignment.
-- **Appearance**: colour presets, poster/map/text colours, water style, street contrast, line
+- **Appearance**: colour presets, poster/map/text colours, water (light blue by default, any colour, solid ink, tinted or outlined), street contrast, line
   weight, buildings, paper size (A4, A3, 30×40, 50×70, square) and orientation.
 - **Live preview** in an optional frame, **export** to PNG, PDF and SVG at 150 or 300 dpi.
 - The design is **saved in the browser** automatically; **share links** encode the design in the

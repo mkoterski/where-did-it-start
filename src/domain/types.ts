@@ -18,7 +18,8 @@ export type TextAlignment = 'left' | 'center' | 'right';
 export type TitleFont = 'sacramento' | 'great-vibes' | 'playfair' | 'jost';
 /** Font for the names and the place/coordinates line. */
 export type BodyFont = 'jost' | 'cormorant' | 'josefin' | 'courier';
-export type WaterStyle = 'ink' | 'tint' | 'outline';
+/** Water (rivers, lakes, sea): own colour, solid ink, a light tint of the ink, or outlined. */
+export type WaterStyle = 'color' | 'ink' | 'tint' | 'outline';
 export type PaperSize = 'a4' | 'a3' | '30x40' | '50x70' | 'square';
 export type Orientation = 'portrait' | 'landscape';
 export type PreviewFrame = 'none' | 'black' | 'white' | 'oak';
@@ -75,6 +76,8 @@ export interface PosterConfig {
   textColor: string;
   mapInk: string;
   waterStyle: WaterStyle;
+  /** Used when `waterStyle` is 'color'. */
+  waterColor: string;
   showBuildings: boolean;
   lineWeight: number;
   /** 0 – 1. Strength of minor streets relative to major roads. */

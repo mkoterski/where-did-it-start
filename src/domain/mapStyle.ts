@@ -28,6 +28,7 @@ export interface MapStyleOptions {
   paper: string;
   ink: string;
   water: WaterStyle;
+  waterColor: string;
   lineWeight: number;
   contrast: number;
   buildings: boolean;
@@ -40,6 +41,7 @@ export function mapStyleOptions(config: PosterConfig, labels: boolean): MapStyle
     paper: config.posterBackground,
     ink: config.mapInk,
     water: config.waterStyle,
+    waterColor: config.waterColor,
     lineWeight: config.lineWeight,
     contrast: config.mapContrast,
     buildings: config.showBuildings,
@@ -89,7 +91,13 @@ export function buildMapStyle(options: MapStyleOptions): StyleSpecification {
   const minor = mixColors(ink, paper, (1 - contrast) * 0.75);
   const faint = mixColors(ink, paper, 0.35 + (1 - contrast) * 0.45);
   const waterFill =
-    options.water === 'ink' ? ink : options.water === 'tint' ? mixColors(ink, paper, 0.78) : paper;
+    options.water === 'color'
+      ? options.waterColor
+      : options.water === 'ink'
+        ? ink
+        : options.water === 'tint'
+          ? mixColors(ink, paper, 0.78)
+          : paper;
 
   const layers: LayerSpecification[] = [
     { id: 'background', type: 'background', paint: { 'background-color': paper } },
@@ -122,7 +130,8 @@ export function buildMapStyle(options: MapStyleOptions): StyleSpecification {
     filter: ['!=', ['get', 'brunnel'], 'tunnel'],
     layout: { 'line-cap': 'round', 'line-join': 'round' },
     paint: {
-      'line-color': options.water === 'tint' ? waterFill : ink,
+      // Narrow rivers and canals are lines; they match the water areas.
+      'line-color': options.water === 'ink' || options.water === 'outline' ? ink : waterFill,
       // Zoom must be the outermost expression, so the class switch sits inside each stop.
       'line-width': [
         'interpolate',

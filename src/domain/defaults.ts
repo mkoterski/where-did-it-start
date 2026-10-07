@@ -44,7 +44,8 @@ export const DEFAULT_CONFIG: PosterConfig = {
   posterBackground: '#fdfcf9',
   textColor: '#1b1b1b',
   mapInk: '#111111',
-  waterStyle: 'ink',
+  waterStyle: 'color',
+  waterColor: '#a6cde6',
   showBuildings: false,
   lineWeight: 1,
   mapContrast: 0.8,
@@ -61,6 +62,7 @@ export interface ThemePreset {
   textColor: string;
   mapInk: string;
   waterStyle: WaterStyle;
+  waterColor: string;
   markerColor: string;
 }
 
@@ -72,7 +74,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     posterBackground: '#fdfcf9',
     textColor: '#1b1b1b',
     mapInk: '#111111',
-    waterStyle: 'ink',
+    waterStyle: 'color',
+    waterColor: '#a6cde6',
     markerColor: '#d7263d',
   },
   {
@@ -81,7 +84,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     posterBackground: '#ffffff',
     textColor: '#2a2a2a',
     mapInk: '#3a3a3a',
-    waterStyle: 'tint',
+    waterStyle: 'color',
+    waterColor: '#bcdcee',
     markerColor: '#d7263d',
   },
   {
@@ -90,7 +94,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     posterBackground: '#f5efe4',
     textColor: '#3b2f28',
     mapInk: '#3b2f28',
-    waterStyle: 'tint',
+    waterStyle: 'color',
+    waterColor: '#a9c4cc',
     markerColor: '#b4432f',
   },
   {
@@ -99,7 +104,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     posterBackground: '#151515',
     textColor: '#f3f0ea',
     mapInk: '#f3f0ea',
-    waterStyle: 'tint',
+    waterStyle: 'color',
+    waterColor: '#3d6580',
     markerColor: '#ff4d5e',
   },
 ];

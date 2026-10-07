@@ -83,6 +83,7 @@ export function posterReducer(state: PosterConfig, action: PosterAction): Poster
         textColor: action.preset.textColor,
         mapInk: action.preset.mapInk,
         waterStyle: action.preset.waterStyle,
+        waterColor: action.preset.waterColor,
         markerColor: action.preset.markerColor,
       };
 

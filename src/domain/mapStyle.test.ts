@@ -6,6 +6,7 @@ import type { WaterStyle } from './types';
 
 describe('buildMapStyle', () => {
   it.each<[WaterStyle, boolean, boolean]>([
+    ['color', false, false],
     ['ink', false, false],
     ['tint', true, true],
     ['outline', true, false],
@@ -27,6 +28,28 @@ describe('buildMapStyle', () => {
     );
     const background = style.layers.find((layer) => layer.id === 'background');
     expect(background?.paint).toEqual({ 'background-color': '#123456' });
+  });
+
+  it('draws rivers and lakes in light blue by default', () => {
+    expect(DEFAULT_CONFIG.waterStyle).toBe('color');
+    const style = buildMapStyle(mapStyleOptions(DEFAULT_CONFIG, false));
+    const water = style.layers.find((layer) => layer.id === 'water');
+    const waterway = style.layers.find((layer) => layer.id === 'waterway');
+    expect(water?.paint).toMatchObject({ 'fill-color': '#a6cde6' });
+    expect(waterway?.paint).toMatchObject({ 'line-color': '#a6cde6' });
+  });
+
+  it('uses the chosen water colour, and ink for the ink style', () => {
+    const custom = buildMapStyle(
+      mapStyleOptions({ ...DEFAULT_CONFIG, waterColor: '#123456' }, false),
+    );
+    expect(custom.layers.find((layer) => layer.id === 'waterway')?.paint).toMatchObject({
+      'line-color': '#123456',
+    });
+    const ink = buildMapStyle(mapStyleOptions({ ...DEFAULT_CONFIG, waterStyle: 'ink' }, false));
+    expect(ink.layers.find((layer) => layer.id === 'water')?.paint).toMatchObject({
+      'fill-color': DEFAULT_CONFIG.mapInk,
+    });
   });
 
   it('only adds label layers when asked to', () => {

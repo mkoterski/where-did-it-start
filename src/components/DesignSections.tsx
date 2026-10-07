@@ -49,6 +49,14 @@ const INK_SWATCHES: Swatch[] = [
   { value: '#f3f0ea', name: 'Off-white' },
 ];
 
+const WATER_SWATCHES: Swatch[] = [
+  { value: '#a6cde6', name: 'Light blue' },
+  { value: '#cfe6f3', name: 'Pale blue' },
+  { value: '#7fb2d4', name: 'River blue' },
+  { value: '#9fd3cf', name: 'Lagoon' },
+  { value: '#3d6580', name: 'Deep blue' },
+];
+
 const pct = (value: number) => `${Math.round(value * 100)}%`;
 
 export function ShapeSection({ config, update, layout }: SectionProps & { layout: PosterLayout }) {
@@ -379,11 +387,20 @@ export function AppearanceSection({
         value={config.waterStyle}
         onChange={(waterStyle) => update({ waterStyle })}
         options={[
-          { value: 'ink', label: 'Solid' },
+          { value: 'color', label: 'Colour' },
+          { value: 'ink', label: 'Solid ink' },
           { value: 'tint', label: 'Tinted' },
           { value: 'outline', label: 'Outline' },
         ]}
       />
+      {config.waterStyle === 'color' ? (
+        <ColorField
+          label="Water colour"
+          value={config.waterColor}
+          onChange={(waterColor) => update({ waterColor })}
+          swatches={WATER_SWATCHES}
+        />
+      ) : null}
       <RangeField
         label="Street contrast"
         min={0}
