@@ -49,6 +49,13 @@ npm run dev        # http://localhost:5173
 The build output is fully static and uses relative paths, so `dist/` can be hosted on any
 static host or a sub-path such as GitHub Pages.
 
+### Deploying to GitHub Pages
+
+`.github/workflows/deploy.yml` checks, builds and publishes the app on every push to `main`
+(or manually via **Actions → Deploy to GitHub Pages → Run workflow**). One-time setup: in the
+repository, open **Settings → Pages** and set **Source** to **GitHub Actions**. The app is then
+served at `https://<user>.github.io/<repository>/`.
+
 ## How it works
 
 ```
