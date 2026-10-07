@@ -42,6 +42,15 @@ describe('PosterOverlay', () => {
     expect(svg).toContain('<g transform="translate(0 3)" opacity="0.22">');
   });
 
+  it('uses the chosen fade strength', () => {
+    expect(markup({ outside: 'faded', outsideFade: 0.45 }, true)).toContain(
+      'fill="#fdfcf9" fill-opacity="0.45"',
+    );
+    expect(markup({ outside: 'faded', outsideFade: 0.45 }, false)).toContain(
+      'fill-opacity="0.45" mask="url(#t-outside)"',
+    );
+  });
+
   it('draws nothing over the map when the outside is visible', () => {
     expect(markup({ outside: 'visible' }, true)).not.toContain(
       'fill-rule="evenodd" fill="#fdfcf9"',

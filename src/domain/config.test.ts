@@ -69,6 +69,13 @@ describe('sanitizeConfig', () => {
     expect(sanitizeConfig({ bodyFont: 'comic-sans' }).bodyFont).toBe('jost');
   });
 
+  it('keeps the fade strength in range', () => {
+    expect(DEFAULT_CONFIG.outsideFade).toBe(0.8);
+    expect(sanitizeConfig({ outsideFade: 0.3 }).outsideFade).toBe(0.3);
+    expect(sanitizeConfig({ outsideFade: 2 }).outsideFade).toBe(0.95);
+    expect(sanitizeConfig({ outsideFade: 'lots' }).outsideFade).toBe(0.8);
+  });
+
   it('validates the water colour', () => {
     expect(sanitizeConfig({ waterColor: '#ABCDEF' }).waterColor).toBe('#abcdef');
     expect(sanitizeConfig({ waterColor: 'blue' }).waterColor).toBe(DEFAULT_CONFIG.waterColor);

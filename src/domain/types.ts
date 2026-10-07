@@ -44,6 +44,8 @@ export interface PosterConfig {
   /** Size of the keyhole relative to the map area (0.4 – 1). */
   frameSize: number;
   outside: OutsideMode;
+  /** How strongly the map outside the shape is faded (0.1 – 0.95) when `outside` is 'faded'. */
+  outsideFade: number;
   frameOutline: boolean;
   frameOutlineWidth: number;
 

@@ -65,6 +65,7 @@ export function sanitizeConfig(raw: unknown): PosterConfig {
     frameShape: pickEnum(v.frameShape, FRAME_SHAPES, d.frameShape),
     frameSize: pickNumber(v.frameSize, 0.4, 1, d.frameSize),
     outside: pickEnum(v.outside, ['hidden', 'faded', 'visible'] as const, d.outside),
+    outsideFade: pickNumber(v.outsideFade, 0.1, 0.95, d.outsideFade),
     frameOutline: pickBoolean(v.frameOutline, d.frameOutline),
     frameOutlineWidth: pickNumber(v.frameOutlineWidth, 0.5, 12, d.frameOutlineWidth),
 

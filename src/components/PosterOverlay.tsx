@@ -11,7 +11,12 @@ import type { FontFace } from '../domain/typography';
 import { DETAIL_FONT, fontStack, getBodyFont, getTitleFont } from '../domain/typography';
 import type { PosterConfig } from '../domain/types';
 
-const OUTSIDE_OPACITY = { hidden: 1, faded: 0.8, visible: 0 } as const;
+/** Opacity of the paper colour laid over the map outside the keyhole. */
+function outsideOpacity(config: PosterConfig): number {
+  if (config.outside === 'hidden') return 1;
+  if (config.outside === 'visible') return 0;
+  return config.outsideFade;
+}
 
 interface PosterOverlayProps {
   config: PosterConfig;
@@ -179,7 +184,7 @@ export function PosterOverlay({
             d={outsidePath(layout, frame.path)}
             fillRule="evenodd"
             fill={config.posterBackground}
-            fillOpacity={OUTSIDE_OPACITY[config.outside]}
+            fillOpacity={outsideOpacity(config)}
           />
         )
       ) : hasLocation ? (
@@ -189,7 +194,7 @@ export function PosterOverlay({
           width={mapArea.width + 4}
           height={mapArea.height + 4}
           fill={config.posterBackground}
-          fillOpacity={OUTSIDE_OPACITY[config.outside]}
+          fillOpacity={outsideOpacity(config)}
           mask={`url(#${maskId})`}
         />
       ) : (

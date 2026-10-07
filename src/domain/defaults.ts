@@ -15,6 +15,7 @@ export const DEFAULT_CONFIG: PosterConfig = {
   frameShape: 'heart',
   frameSize: 0.92,
   outside: 'hidden',
+  outsideFade: 0.8,
   frameOutline: false,
   frameOutlineWidth: 2,
 

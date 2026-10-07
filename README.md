@@ -5,14 +5,16 @@ your names and download a print-ready file.
 
 **Try it:** https://mkoterski.github.io/where-did-it-start/
 
-![Example poster: map of Berlin around Potsdamer Platz in a heart with light-blue rivers, a red brush-painted heart, “Where it all began…”, “Anita & Matthias” and “Berlin 52.50971°N 13.37605°E”](docs/example-poster.png)
+<img src="docs/example-poster.svg" width="420" alt="Example poster, exported as a fully vector SVG: map of Berlin around Potsdamer Platz in a heart with light-blue rivers, a red brush-painted heart, “Where it all began…”, “Anita &amp; Matthias” and “Berlin 52.50971°N 13.37605°E”">
+
+_The picture above is the app's fully vector SVG export._
 
 ## Features
 
 - **Place:** search, click the map, drag the marker (live preview), nudge it with arrows, use
   _Precise placement_, or type coordinates.
 - **Shape:** heart, circle, rounded square, diamond, hexagon or star; the map outside can be
-  hidden, faded or shown.
+  hidden, faded (adjustable strength) or shown.
 - **Marker:** heart, circle, pin, star or diamond in a brush, brush-outline, felt-tip, pencil or
   clean look, with adjustable size, colour and opacity.
 - **Text:** title, names, place and coordinates, with a choice of fonts.

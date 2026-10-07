@@ -110,6 +110,17 @@ export function ShapeSection({ config, update, layout }: SectionProps & { layout
           { value: 'visible', label: 'Visible' },
         ]}
       />
+      {config.outside === 'faded' ? (
+        <RangeField
+          label="Fade strength"
+          min={0.1}
+          max={0.95}
+          step={0.05}
+          value={config.outsideFade}
+          onChange={(outsideFade) => update({ outsideFade })}
+          format={pct}
+        />
+      ) : null}
       <Toggle
         label="Outline the shape"
         checked={config.frameOutline}
