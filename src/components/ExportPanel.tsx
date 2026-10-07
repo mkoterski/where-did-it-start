@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import { encodeShareState, SHARE_PARAM } from '../domain/config';
-import { EXPORT_QUALITIES, exportPixelSize, type ExportQuality } from '../domain/paper';
+import {
+  EXPORT_QUALITIES,
+  exportPixelSize,
+  paperDimensionsMm,
+  type ExportQuality,
+} from '../domain/paper';
 import type { PosterConfig } from '../domain/types';
 import type { ExportFormat } from '../export/exportPoster';
 import {
@@ -10,7 +15,7 @@ import {
   preloadExportModules,
 } from '../export/loadExport';
 import { STORAGE_KEY } from '../state/usePosterState';
-import { SelectField } from './controls';
+import { Segmented, SelectField } from './controls';
 
 type ExportState =
   | { status: 'idle' }
@@ -34,10 +39,13 @@ const FORMATS: Array<{ format: ExportFormat; label: string; hint: string }> = [
 
 export function ExportPanel({ config, onReset, onUndoReset }: ExportPanelProps) {
   const [quality, setQuality] = useState<ExportQuality>('print');
+  const [vectorMode, setVectorMode] = useState<'vector' | 'image'>('vector');
   const [state, setState] = useState<ExportState>({ status: 'idle' });
   const [shareMessage, setShareMessage] = useState('');
   const disabled = !config.location || state.status === 'working';
   const size = exportPixelSize(config.paperSize, config.orientation, quality);
+  const { widthMm, heightMm } = paperDimensionsMm(config.paperSize, config.orientation);
+  const paperLabel = `${widthMm / 10} × ${heightMm / 10} cm`;
   const hasLocation = config.location !== null;
 
   // Load the export code in the background once a download becomes possible.
@@ -72,12 +80,15 @@ export function ExportPanel({ config, onReset, onUndoReset }: ExportPanelProps) 
       const result = await exportPoster(config, {
         format,
         quality,
+        vector: vectorMode === 'vector',
         onProgress: (message) => setState({ status: 'working', format, message }),
       });
       downloadBlob(result.blob, result.filename);
       setState({
         status: 'done',
-        message: `Saved ${result.filename} (${result.width} × ${result.height} px, ${result.dpi} dpi).`,
+        message: result.vector
+          ? `Saved ${result.filename} (fully vector, ${paperLabel}).`
+          : `Saved ${result.filename} (${result.width} × ${result.height} px, ${result.dpi} dpi).`,
       });
     } catch (error) {
       if (isStaleBuildError(error)) {
@@ -113,10 +124,21 @@ export function ExportPanel({ config, onReset, onUndoReset }: ExportPanelProps) 
       <h2 id="export-heading" className="visually-hidden">
         Download
       </h2>
+      <div className="export__vector">
+        <Segmented<'vector' | 'image'>
+          legend="PDF & SVG as"
+          value={vectorMode}
+          onChange={setVectorMode}
+          options={[
+            { value: 'vector', label: 'Vector · light, sharp at any size' },
+            { value: 'image', label: 'Image' },
+          ]}
+        />
+      </div>
       <div className="export__main">
         <div className="export__quality">
           <SelectField<ExportQuality>
-            label="Download quality"
+            label={vectorMode === 'vector' ? 'PNG quality' : 'Download quality'}
             value={quality}
             onChange={setQuality}
             options={(Object.keys(EXPORT_QUALITIES) as ExportQuality[]).map((key) => ({

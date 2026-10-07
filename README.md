@@ -17,8 +17,9 @@ your names and download a print-ready file.
   clean look, with adjustable size, colour and opacity.
 - **Text:** title, names, place and coordinates, with a choice of fonts.
 - **Look:** colour presets, light-blue or custom water, line weight, paper size and orientation.
-- **Download:** PNG, PDF or SVG at 150 or 300 dpi. Designs are saved in the browser and can be
-  shared as a link.
+- **Download:** PNG (150 or 300 dpi), and PDF or SVG as **fully vector** files (light to
+  create, sharp at any size) or as images. Designs are saved in the browser and can be shared
+  as a link.
 
 ## Development
 
@@ -53,7 +54,7 @@ optional variables in `.env.example`. They are public in the build, so never put
 
 ## Notes
 
-- Text, shapes and the marker are vectors in the SVG. The map itself is a high-resolution
-  image in all formats.
-- 300 dpi downloads are capped at about 36 megapixels, so 50 × 70 cm comes out at ~212 dpi.
+- Vector PDF/SVG are drawn straight from the map data (no WebGL, no large image), with text
+  converted to outlines. The image option and PNG render the map with WebGL instead.
+- 300 dpi image downloads are capped at about 36 megapixels, so 50 × 70 cm comes out at ~212 dpi.
 - To add a shape, add it to `src/domain/shapes.ts` (and its id to `src/domain/types.ts`).

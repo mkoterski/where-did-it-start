@@ -5,6 +5,7 @@ import { shapeTransformAttribute, type PosterLayout } from '../domain/layout';
 import { MAP_ATTRIBUTION_TEXT } from '../domain/mapStyle';
 import { fitFontSize } from '../domain/measure';
 import { getShape } from '../domain/shapes';
+import { pathRings } from '../domain/brush';
 import { markerHalo, markerPaths } from '../domain/sketch';
 import type { FontFace } from '../domain/typography';
 import { DETAIL_FONT, fontStack, getBodyFont, getTitleFont } from '../domain/typography';
@@ -27,6 +28,37 @@ interface PosterOverlayProps {
   /** Rendered size of the root <svg>; defaults to the design size. */
   width?: number | string;
   height?: number | string;
+  /**
+   * Avoid SVG masks and filters (for vector PDF/SVG exports, whose converters and editors
+   * handle them poorly): the outside of the shape becomes a path with a hole and the marker
+   * shadow a soft offset copy.
+   */
+  maskFree?: boolean;
+}
+
+/** The map area with the keyhole cut out, as one even-odd path in poster units. */
+function outsidePath(layout: PosterLayout, framePath: string): string {
+  const { mapArea, frame } = layout;
+  const x0 = mapArea.x - 2;
+  const y0 = mapArea.y - 2;
+  const x1 = mapArea.x + mapArea.width + 2;
+  const y1 = mapArea.y + mapArea.height + 2;
+  const hole = pathRings(framePath)
+    .map(
+      (ring) =>
+        'M' +
+        ring
+          .map(
+            ([x, y]) =>
+              `${Math.round((frame.x + x * frame.scale) * 100) / 100} ${
+                Math.round((frame.y + y * frame.scale) * 100) / 100
+              }`,
+          )
+          .join(' L') +
+        ' Z',
+    )
+    .join(' ');
+  return `M${x0} ${y0} H${x1} V${y1} H${x0} Z ${hole}`;
 }
 
 function PosterText({
@@ -83,6 +115,7 @@ export function PosterOverlay({
   className,
   width,
   height,
+  maskFree = false,
 }: PosterOverlayProps) {
   const frame = getShape(config.frameShape);
   const marker = getShape(config.markerShape);
@@ -140,7 +173,16 @@ export function PosterOverlay({
 
       {underlay}
 
-      {hasLocation ? (
+      {hasLocation && maskFree ? (
+        config.outside === 'visible' ? null : (
+          <path
+            d={outsidePath(layout, frame.path)}
+            fillRule="evenodd"
+            fill={config.posterBackground}
+            fillOpacity={OUTSIDE_OPACITY[config.outside]}
+          />
+        )
+      ) : hasLocation ? (
         <rect
           x={mapArea.x - 2}
           y={mapArea.y - 2}
@@ -181,8 +223,27 @@ export function PosterOverlay({
         />
       ) : null}
 
+      {layout.marker && marker.path && maskFree && config.markerShadow ? (
+        <g transform="translate(0 3)" opacity={0.22}>
+          <g transform={shapeTransformAttribute(layout.marker)}>
+            {markerPaths(config.markerShape, config.markerStyle, '#000000').map((path, index) => (
+              <path
+                key={index}
+                d={path.d}
+                fill={path.fill ?? 'none'}
+                fillRule={path.fillRule ?? marker.fillRule}
+                stroke={path.stroke}
+                strokeWidth={path.strokeWidth}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            ))}
+          </g>
+        </g>
+      ) : null}
+
       {layout.marker && marker.path ? (
-        <g filter={config.markerShadow ? `url(#${shadowId})` : undefined}>
+        <g filter={config.markerShadow && !maskFree ? `url(#${shadowId})` : undefined}>
           <g
             transform={shapeTransformAttribute(layout.marker)}
             opacity={config.markerOpacity < 1 ? config.markerOpacity : undefined}

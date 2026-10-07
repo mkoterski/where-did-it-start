@@ -18,6 +18,11 @@ export interface ExportOptions {
   onProgress?: (message: string) => void;
   /** Rendering timeout for the map tiles. */
   timeoutMs?: number;
+  /**
+   * PDF and SVG only: draw the map, shapes and text as vectors straight from the map data
+   * instead of rendering a print-size image. Lighter on the device and sharp at any size.
+   */
+  vector?: boolean;
 }
 
 export interface ExportResult {
@@ -26,6 +31,8 @@ export interface ExportResult {
   width: number;
   height: number;
   dpi: number;
+  /** True when the file is fully vector (no embedded images). */
+  vector?: boolean;
 }
 
 export class ExportError extends Error {
@@ -209,14 +216,104 @@ async function composeRaster(
   return canvas;
 }
 
+/**
+ * Fully vector SVG/PDF: map paths from the vector tiles, the shared overlay without masks or
+ * filters, and text converted to outlines. Needs no WebGL and no large canvas.
+ */
+async function exportVector(
+  config: PosterConfig,
+  layout: PosterLayout,
+  format: 'pdf' | 'svg',
+  onProgress?: (message: string) => void,
+): Promise<Blob> {
+  const { widthMm, heightMm } = paperDimensionsMm(config.paperSize, config.orientation);
+  const [{ renderVectorMap }, { outlineSvgText }] = await Promise.all([
+    import('./vectorMap'),
+    import('./outlineText'),
+  ]);
+
+  onProgress?.('Loading the map data…');
+  let map: Awaited<ReturnType<typeof renderVectorMap>>;
+  try {
+    map = await renderVectorMap(config, layout, { idPrefix: 'vmap' });
+  } catch {
+    throw new ExportError(
+      'The map data could not be loaded, so the export would be incomplete. ' +
+        'Check your connection and try again.',
+    );
+  }
+
+  onProgress?.('Drawing the poster as vectors…');
+  const underlay = (
+    <>
+      <rect width={layout.width} height={layout.height} fill={config.posterBackground} />
+      <g dangerouslySetInnerHTML={{ __html: `<defs>${map.defs}</defs>${map.body}` }} />
+    </>
+  );
+  const markup = renderToStaticMarkup(
+    <PosterOverlay
+      config={config}
+      layout={layout}
+      idPrefix="export"
+      mode="export"
+      underlay={underlay}
+      width={`${widthMm}mm`}
+      height={`${heightMm}mm`}
+      maskFree
+    />,
+  );
+
+  onProgress?.('Converting the text to outlines…');
+  let svg: string;
+  try {
+    svg = await outlineSvgText(markup);
+  } catch {
+    throw new ExportError('The poster fonts could not be loaded. Please try again.');
+  }
+
+  if (format === 'svg') {
+    return new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n', svg], { type: 'image/svg+xml' });
+  }
+
+  onProgress?.('Creating the PDF…');
+  const [{ jsPDF }, { svg2pdf }] = await Promise.all([import('jspdf'), import('svg2pdf.js')]);
+  const pdf = new jsPDF({
+    orientation: widthMm > heightMm ? 'landscape' : 'portrait',
+    unit: 'mm',
+    format: [widthMm, heightMm],
+    compress: true,
+  });
+  // svg2pdf reads computed styles, so the SVG has to be in the document while it converts.
+  const host = document.createElement('div');
+  Object.assign(host.style, { position: 'fixed', left: '-10000px', top: '0', opacity: '0' });
+  host.innerHTML = svg;
+  document.body.appendChild(host);
+  try {
+    const element = host.querySelector('svg');
+    if (!element) throw new ExportError('The poster could not be prepared for the PDF.');
+    await svg2pdf(element, pdf, { x: 0, y: 0, width: widthMm, height: heightMm });
+  } finally {
+    host.remove();
+  }
+  return pdf.output('blob');
+}
+
 export async function exportPoster(
   config: PosterConfig,
-  { format, quality, onProgress, timeoutMs = 60_000 }: ExportOptions,
+  { format, quality, onProgress, timeoutMs = 60_000, vector = false }: ExportOptions,
 ): Promise<ExportResult> {
   if (!config.location) throw new ExportError('Choose a location first.');
 
   const layout = computeLayout(config);
   const { width, height, dpi } = exportPixelSize(config.paperSize, config.orientation, quality);
+
+  if (vector && format !== 'png') {
+    onProgress?.('Preparing fonts…');
+    // Text is measured with the real fonts so that outlines match the preview.
+    await loadPosterFonts(config.titleFont, config.bodyFont);
+    const blob = await exportVector(config, layout, format, onProgress);
+    return { blob, filename: exportFilename(config, format), width, height, dpi, vector: true };
+  }
   const scale = width / layout.width;
 
   onProgress?.('Preparing fonts…');

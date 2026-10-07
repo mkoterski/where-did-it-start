@@ -295,6 +295,23 @@ describe('App', () => {
       expect.objectContaining({ location: BERLIN, title: 'Where it all began...' }),
       expect.objectContaining({ format: 'png', quality: 'print' }),
     );
+
+    await user.click(screen.getByRole('button', { name: 'PDF' }));
+    await waitFor(() =>
+      expect(exportPoster).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({ format: 'pdf', vector: true }),
+      ),
+    );
+
+    await user.click(screen.getByRole('radio', { name: 'Image' }));
+    await user.click(screen.getByRole('button', { name: 'SVG' }));
+    await waitFor(() =>
+      expect(exportPoster).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({ format: 'svg', vector: false }),
+      ),
+    );
     expect(screen.getByText(/Saved where-it-all-began-berlin.png/)).toBeInTheDocument();
   });
 
