@@ -64,6 +64,11 @@ describe('sanitizeConfig', () => {
     expect(config).not.toHaveProperty('unknownKey');
   });
 
+  it('keeps a known text font and falls back for unknown ones', () => {
+    expect(sanitizeConfig({ bodyFont: 'courier' }).bodyFont).toBe('courier');
+    expect(sanitizeConfig({ bodyFont: 'comic-sans' }).bodyFont).toBe('jost');
+  });
+
   it('rejects invalid locations', () => {
     expect(sanitizeConfig({ location: { latitude: 120, longitude: 0 } }).location).toBeNull();
     expect(sanitizeConfig({ location: { latitude: 'x', longitude: 0 } }).location).toBeNull();

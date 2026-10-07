@@ -7,7 +7,7 @@ import { fitFontSize } from '../domain/measure';
 import { getShape } from '../domain/shapes';
 import { markerPaths } from '../domain/sketch';
 import type { FontFace } from '../domain/typography';
-import { DETAIL_FONT, fontStack, getTitleFont, NAMES_FONT } from '../domain/typography';
+import { DETAIL_FONT, fontStack, getBodyFont, getTitleFont } from '../domain/typography';
 import type { PosterConfig } from '../domain/types';
 
 const OUTSIDE_OPACITY = { hidden: 1, faded: 0.8, visible: 0 } as const;
@@ -89,6 +89,7 @@ export function PosterOverlay({
   const { mapArea } = layout;
   const hasLocation = config.location !== null;
   const titleFont = getTitleFont(config.titleFont);
+  const bodyFont = getBodyFont(config.bodyFont);
   const maskId = `${idPrefix}-outside`;
   const shadowId = `${idPrefix}-shadow`;
   const frameTransform = shapeTransformAttribute(layout.frame);
@@ -226,18 +227,18 @@ export function PosterOverlay({
       />
       <PosterText
         text={config.names}
-        face={NAMES_FONT}
-        size={layout.sizes.names}
-        letterSpacing={0.6}
+        face={bodyFont.names}
+        size={layout.sizes.names * bodyFont.sizeFactor}
+        letterSpacing={bodyFont.namesLetterSpacing}
         y={layout.text.namesY}
         layout={layout}
         color={config.textColor}
       />
       <PosterText
         text={locationLine}
-        face={DETAIL_FONT}
-        size={layout.sizes.location}
-        letterSpacing={1.1}
+        face={bodyFont.detail}
+        size={layout.sizes.location * bodyFont.sizeFactor}
+        letterSpacing={bodyFont.detailLetterSpacing}
         y={layout.text.locationY}
         layout={layout}
         color={config.textColor}

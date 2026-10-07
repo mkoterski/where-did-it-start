@@ -4,7 +4,7 @@ import type { PosterLayout } from '../domain/layout';
 import { PAPER_SIZES } from '../domain/paper';
 import { FRAME_SHAPES, getShape, MARKER_SHAPES } from '../domain/shapes';
 import { markerPaths } from '../domain/sketch';
-import { TITLE_FONTS } from '../domain/typography';
+import { BODY_FONTS, TITLE_FONTS } from '../domain/typography';
 import type { PosterConfig } from '../domain/types';
 import {
   ColorField,
@@ -285,6 +285,12 @@ export function TextSection({
         value={config.titleFont}
         onChange={(titleFont) => update({ titleFont })}
         options={TITLE_FONTS.map((font) => ({ value: font.id, label: font.label }))}
+      />
+      <SelectField
+        label="Text font (names and place)"
+        value={config.bodyFont}
+        onChange={(bodyFont) => update({ bodyFont })}
+        options={BODY_FONTS.map((font) => ({ value: font.id, label: font.label }))}
       />
       <RangeField
         label="Title size"

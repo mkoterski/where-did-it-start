@@ -3,7 +3,7 @@ import { isValidLatitude, isValidLongitude } from './coordinates';
 import { DEFAULT_CONFIG, TEXT_LIMITS, ZOOM_RANGE } from './defaults';
 import { PAPER_SIZES } from './paper';
 import { FRAME_SHAPES, MARKER_SHAPES } from './shapes';
-import { TITLE_FONTS } from './typography';
+import { BODY_FONTS, TITLE_FONTS } from './typography';
 import type { LocationSelection, PosterConfig } from './types';
 
 type Raw = Record<string, unknown>;
@@ -90,6 +90,11 @@ export function sanitizeConfig(raw: unknown): PosterConfig {
       v.titleFont,
       TITLE_FONTS.map((f) => f.id),
       d.titleFont,
+    ),
+    bodyFont: pickEnum(
+      v.bodyFont,
+      BODY_FONTS.map((f) => f.id),
+      d.bodyFont,
     ),
     titleScale: pickNumber(v.titleScale, 0.5, 1.6, d.titleScale),
     textAlignment: pickEnum(v.textAlignment, ['left', 'center', 'right'] as const, d.textAlignment),

@@ -1,4 +1,8 @@
+import '@fontsource/cormorant-garamond/500.css';
+import '@fontsource/courier-prime/400.css';
 import '@fontsource/great-vibes/400.css';
+import '@fontsource/josefin-sans/300.css';
+import '@fontsource/josefin-sans/400.css';
 import '@fontsource/jost/300.css';
 import '@fontsource/jost/400.css';
 import '@fontsource/jost/500.css';

@@ -2,16 +2,16 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { loadPosterFonts } from '../domain/fontLoading';
 import type { PosterLayout } from '../domain/layout';
 import { getShape } from '../domain/shapes';
-import type { PosterConfig, TitleFont } from '../domain/types';
+import type { BodyFont, PosterConfig, TitleFont } from '../domain/types';
 import { PosterMap, type MapStatus } from './PosterMap';
 import { PosterOverlay } from './PosterOverlay';
 
 /** Re-renders once web fonts have loaded, so SVG text is measured with the real glyphs. */
-function useFontsVersion(titleFont: TitleFont): number {
+function useFontsVersion(titleFont: TitleFont, bodyFont: BodyFont): number {
   const [version, setVersion] = useState(0);
   useEffect(() => {
     let active = true;
-    loadPosterFonts(titleFont).then(() => active && setVersion((v) => v + 1));
+    loadPosterFonts(titleFont, bodyFont).then(() => active && setVersion((v) => v + 1));
     const fonts = typeof document !== 'undefined' ? document.fonts : undefined;
     const bump = () => setVersion((v) => v + 1);
     fonts?.addEventListener?.('loadingdone', bump);
@@ -19,7 +19,7 @@ function useFontsVersion(titleFont: TitleFont): number {
       active = false;
       fonts?.removeEventListener?.('loadingdone', bump);
     };
-  }, [titleFont]);
+  }, [titleFont, bodyFont]);
   return version;
 }
 
@@ -49,7 +49,7 @@ const FRAME_PADDING: Record<PosterConfig['previewFrame'], number> = {
 export function PosterPreview({ config, layout }: { config: PosterConfig; layout: PosterLayout }) {
   const [stageRef, stage] = useElementSize<HTMLDivElement>();
   const [mapStatus, setMapStatus] = useState<MapStatus>('loading');
-  const fontsVersion = useFontsVersion(config.titleFont);
+  const fontsVersion = useFontsVersion(config.titleFont, config.bodyFont);
 
   const frame = FRAME_PADDING[config.previewFrame];
   const availableWidth = Math.max(0, stage.width - frame * 2);

@@ -37,6 +37,7 @@ export const DEFAULT_CONFIG: PosterConfig = {
   coordinatePrecision: 5,
   showAttribution: true,
   titleFont: 'sacramento',
+  bodyFont: 'jost',
   titleScale: 1,
   textAlignment: 'center',
 

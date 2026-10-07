@@ -25,7 +25,8 @@ download a print-ready PNG, PDF or SVG.
   [rough.js](https://roughjs.com) from a fixed seed, so preview and exports always match.
 - **Text**: main phrase, names, place label (filled in from the selected place, editable),
   coordinates in decimal (`48.15838°N 11.50194°E`) or degrees/minutes/seconds, four title
-  fonts, size and alignment.
+  fonts, four fonts for the names and place line (modern sans, elegant serif, vintage sans,
+  typewriter), title size and alignment.
 - **Appearance**: colour presets, poster/map/text colours, water style, street contrast, line
   weight, buildings, paper size (A4, A3, 30×40, 50×70, square) and orientation.
 - **Live preview** in an optional frame, **export** to PNG, PDF and SVG at 150 or 300 dpi.

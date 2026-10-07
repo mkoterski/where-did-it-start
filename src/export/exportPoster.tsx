@@ -220,8 +220,8 @@ export async function exportPoster(
   const scale = width / layout.width;
 
   onProgress?.('Preparing fonts…');
-  await loadPosterFonts(config.titleFont);
-  const fontCss = await embeddedFontCss(config.titleFont);
+  await loadPosterFonts(config.titleFont, config.bodyFont);
+  const fontCss = await embeddedFontCss(config.titleFont, config.bodyFont);
 
   onProgress?.(`Rendering the map at ${width} × ${height} px…`);
   const mapCanvas = await renderMap(config, layout, scale, timeoutMs);

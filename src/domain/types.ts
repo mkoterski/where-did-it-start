@@ -13,6 +13,8 @@ export type OutsideMode = 'hidden' | 'faded' | 'visible';
 export type CoordinateFormat = 'decimal' | 'dms';
 export type TextAlignment = 'left' | 'center' | 'right';
 export type TitleFont = 'sacramento' | 'great-vibes' | 'playfair' | 'jost';
+/** Font for the names and the place/coordinates line. */
+export type BodyFont = 'jost' | 'cormorant' | 'josefin' | 'courier';
 export type WaterStyle = 'ink' | 'tint' | 'outline';
 export type PaperSize = 'a4' | 'a3' | '30x40' | '50x70' | 'square';
 export type Orientation = 'portrait' | 'landscape';
@@ -62,6 +64,7 @@ export interface PosterConfig {
   coordinatePrecision: number;
   showAttribution: boolean;
   titleFont: TitleFont;
+  bodyFont: BodyFont;
   titleScale: number;
   textAlignment: TextAlignment;
 

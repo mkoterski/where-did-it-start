@@ -170,6 +170,29 @@ describe('App', () => {
     expect(screen.getByText('16/40')).toBeInTheDocument();
   });
 
+  it('offers several fonts for the names and place text', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await searchAndSelect(user);
+    const select = screen.getByLabelText('Text font (names and place)');
+    expect(within(select).getAllByRole('option').length).toBeGreaterThanOrEqual(3);
+
+    const fontOf = (text: string) =>
+      Array.from(poster().querySelectorAll('text'))
+        .find((node) => node.textContent?.includes(text))
+        ?.getAttribute('font-family');
+    expect(fontOf('Anita & Matthias')).toContain('Jost');
+
+    await user.selectOptions(select, 'cormorant');
+    expect(fontOf('Anita & Matthias')).toContain('Cormorant Garamond');
+    expect(fontOf('Berlin 52.50965')).toContain('Cormorant Garamond');
+    // The main phrase keeps its own font.
+    expect(fontOf('Where it all began')).toContain('Sacramento');
+
+    await user.selectOptions(select, 'courier');
+    expect(fontOf('Anita & Matthias')).toContain('Courier Prime');
+  });
+
   it('hides coordinates and switches their format', async () => {
     const user = userEvent.setup();
     render(<App />);

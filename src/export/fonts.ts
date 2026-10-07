@@ -1,3 +1,11 @@
+import cormorant500Latin from '@fontsource/cormorant-garamond/files/cormorant-garamond-latin-500-normal.woff2?url';
+import cormorant500LatinExt from '@fontsource/cormorant-garamond/files/cormorant-garamond-latin-ext-500-normal.woff2?url';
+import courier400Latin from '@fontsource/courier-prime/files/courier-prime-latin-400-normal.woff2?url';
+import courier400LatinExt from '@fontsource/courier-prime/files/courier-prime-latin-ext-400-normal.woff2?url';
+import josefin300Latin from '@fontsource/josefin-sans/files/josefin-sans-latin-300-normal.woff2?url';
+import josefin300LatinExt from '@fontsource/josefin-sans/files/josefin-sans-latin-ext-300-normal.woff2?url';
+import josefin400Latin from '@fontsource/josefin-sans/files/josefin-sans-latin-400-normal.woff2?url';
+import josefin400LatinExt from '@fontsource/josefin-sans/files/josefin-sans-latin-ext-400-normal.woff2?url';
 import greatVibesLatin from '@fontsource/great-vibes/files/great-vibes-latin-400-normal.woff2?url';
 import greatVibesLatinExt from '@fontsource/great-vibes/files/great-vibes-latin-ext-400-normal.woff2?url';
 import jost300Latin from '@fontsource/jost/files/jost-latin-300-normal.woff2?url';
@@ -8,8 +16,14 @@ import playfairLatin from '@fontsource/playfair-display/files/playfair-display-l
 import playfairLatinExt from '@fontsource/playfair-display/files/playfair-display-latin-ext-400-italic.woff2?url';
 import sacramentoLatin from '@fontsource/sacramento/files/sacramento-latin-400-normal.woff2?url';
 import sacramentoLatinExt from '@fontsource/sacramento/files/sacramento-latin-ext-400-normal.woff2?url';
-import { DETAIL_FONT, getTitleFont, NAMES_FONT, type FontFace } from '../domain/typography';
-import type { TitleFont } from '../domain/types';
+import {
+  DETAIL_FONT,
+  getBodyFont,
+  getTitleFont,
+  NAMES_FONT,
+  type FontFace,
+} from '../domain/typography';
+import type { BodyFont, TitleFont } from '../domain/types';
 
 const LATIN =
   'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,' +
@@ -38,10 +52,18 @@ const TITLE_FILES: Record<TitleFont, FontFile[]> = {
   jost: files(getTitleFont('jost'), jost300Latin, jost300LatinExt),
 };
 
-const BODY_FILES: FontFile[] = [
-  ...files(NAMES_FONT, jost400Latin, jost400LatinExt),
-  ...files(DETAIL_FONT, jost300Latin, jost300LatinExt),
-];
+/** Jost 300 is always embedded: the map credit line uses it whatever the body font. */
+const CREDIT_FILES: FontFile[] = files(DETAIL_FONT, jost300Latin, jost300LatinExt);
+
+const BODY_FILES: Record<BodyFont, FontFile[]> = {
+  jost: files(NAMES_FONT, jost400Latin, jost400LatinExt),
+  cormorant: files(getBodyFont('cormorant').names, cormorant500Latin, cormorant500LatinExt),
+  josefin: [
+    ...files(getBodyFont('josefin').names, josefin400Latin, josefin400LatinExt),
+    ...files(getBodyFont('josefin').detail, josefin300Latin, josefin300LatinExt),
+  ],
+  courier: files(getBodyFont('courier').names, courier400Latin, courier400LatinExt),
+};
 
 const dataUrlCache = new Map<string, Promise<string>>();
 
@@ -72,8 +94,8 @@ async function toDataUrl(url: string): Promise<string> {
  * SVGs drawn as images cannot see the page's web fonts, so the export embeds the fonts it
  * uses as data URLs in an SVG <style> block.
  */
-export async function embeddedFontCss(titleFont: TitleFont): Promise<string> {
-  const needed = [...TITLE_FILES[titleFont], ...BODY_FILES];
+export async function embeddedFontCss(titleFont: TitleFont, bodyFont: BodyFont): Promise<string> {
+  const needed = [...TITLE_FILES[titleFont], ...BODY_FILES[bodyFont], ...CREDIT_FILES];
   const rules = await Promise.all(
     needed.map(async ({ face, url, unicodeRange }) => {
       const data = await toDataUrl(url);
