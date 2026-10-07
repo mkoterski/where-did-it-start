@@ -19,6 +19,7 @@ export const DEFAULT_CONFIG: PosterConfig = {
   frameOutlineWidth: 2,
 
   markerShape: 'heart',
+  markerStyle: 'drawn',
   markerColor: '#d7263d',
   markerOpacity: 1,
   markerSize: 46,

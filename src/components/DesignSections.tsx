@@ -3,6 +3,7 @@ import { THEME_PRESETS, TEXT_LIMITS, ZOOM_RANGE, type ThemePreset } from '../dom
 import type { PosterLayout } from '../domain/layout';
 import { PAPER_SIZES } from '../domain/paper';
 import { FRAME_SHAPES, getShape, MARKER_SHAPES } from '../domain/shapes';
+import { markerPaths } from '../domain/sketch';
 import { TITLE_FONTS } from '../domain/typography';
 import type { PosterConfig } from '../domain/types';
 import {
@@ -132,11 +133,29 @@ export function MarkerSection({ config, update }: SectionProps) {
         options={MARKER_SHAPES.map((id) => ({
           value: id,
           label: getShape(id).label,
-          icon: <ShapeIcon path={getShape(id).path} fillRule={getShape(id).fillRule} />,
+          icon: (
+            <ShapeIcon
+              path={getShape(id).path}
+              fillRule={getShape(id).fillRule}
+              paths={
+                id === 'none' ? undefined : markerPaths(id, config.markerStyle, 'currentColor')
+              }
+            />
+          ),
         }))}
       />
       {hasMarker ? (
         <>
+          <Segmented
+            legend="Marker look"
+            value={config.markerStyle}
+            onChange={(markerStyle) => update({ markerStyle })}
+            options={[
+              { value: 'drawn', label: 'Hand-drawn' },
+              { value: 'sketch', label: 'Pencil sketch' },
+              { value: 'clean', label: 'Clean' },
+            ]}
+          />
           <ColorField
             label="Marker colour"
             value={config.markerColor}

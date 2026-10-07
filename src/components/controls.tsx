@@ -1,4 +1,5 @@
 import { useId, type ReactNode } from 'react';
+import type { MarkerPath } from '../domain/sketch';
 
 export function Section({
   title,
@@ -287,7 +288,16 @@ export function SelectField<T extends string>({
   );
 }
 
-export function ShapeIcon({ path, fillRule }: { path: string; fillRule?: 'nonzero' | 'evenodd' }) {
+export function ShapeIcon({
+  path,
+  fillRule,
+  paths,
+}: {
+  path: string;
+  fillRule?: 'nonzero' | 'evenodd';
+  /** Pre-rendered paths (e.g. a hand-drawn marker) to show instead of the plain shape. */
+  paths?: MarkerPath[];
+}) {
   if (!path) {
     return (
       <svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">
@@ -301,8 +311,23 @@ export function ShapeIcon({ path, fillRule }: { path: string; fillRule?: 'nonzer
     );
   }
   return (
-    <svg viewBox="-4 -4 108 108" aria-hidden="true" focusable="false">
-      <path d={path} fill="currentColor" fillRule={fillRule} />
+    <svg viewBox="-6 -6 112 112" aria-hidden="true" focusable="false">
+      {paths ? (
+        paths.map((p, index) => (
+          <path
+            key={index}
+            d={p.d}
+            fill={p.fill ?? 'none'}
+            fillRule={fillRule}
+            stroke={p.stroke}
+            strokeWidth={p.strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        ))
+      ) : (
+        <path d={path} fill="currentColor" fillRule={fillRule} />
+      )}
     </svg>
   );
 }

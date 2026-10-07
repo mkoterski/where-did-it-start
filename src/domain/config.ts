@@ -69,6 +69,7 @@ export function sanitizeConfig(raw: unknown): PosterConfig {
     frameOutlineWidth: pickNumber(v.frameOutlineWidth, 0.5, 12, d.frameOutlineWidth),
 
     markerShape: pickEnum(v.markerShape, MARKER_SHAPES, d.markerShape),
+    markerStyle: pickEnum(v.markerStyle, ['clean', 'drawn', 'sketch'] as const, d.markerStyle),
     markerColor: pickColor(v.markerColor, d.markerColor),
     markerOpacity: pickNumber(v.markerOpacity, 0.1, 1, d.markerOpacity),
     markerSize: pickNumber(v.markerSize, 16, 160, d.markerSize),

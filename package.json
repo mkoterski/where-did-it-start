@@ -23,7 +23,8 @@
     "jspdf": "^4.2.1",
     "maplibre-gl": "^6.13.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "roughjs": "^4.6.6"
   },
   "devDependencies": {
     "@maplibre/maplibre-gl-style-spec": "^26.4.4",

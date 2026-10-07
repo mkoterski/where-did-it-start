@@ -5,6 +5,7 @@ import { shapeTransformAttribute, type PosterLayout } from '../domain/layout';
 import { MAP_ATTRIBUTION_TEXT } from '../domain/mapStyle';
 import { fitFontSize } from '../domain/measure';
 import { getShape } from '../domain/shapes';
+import { markerPaths } from '../domain/sketch';
 import type { FontFace } from '../domain/typography';
 import { DETAIL_FONT, fontStack, getTitleFont, NAMES_FONT } from '../domain/typography';
 import type { PosterConfig } from '../domain/types';
@@ -181,21 +182,36 @@ export function PosterOverlay({
 
       {layout.marker && marker.path ? (
         <g filter={config.markerShadow ? `url(#${shadowId})` : undefined}>
-          <path
-            d={marker.path}
+          <g
             transform={shapeTransformAttribute(layout.marker)}
-            fill={config.markerColor}
-            fillOpacity={config.markerOpacity}
-            fillRule={marker.fillRule}
-            stroke={config.markerOutline ? config.markerOutlineColor : undefined}
-            strokeWidth={
-              config.markerOutline
-                ? (config.markerOutlineWidth * 2) / layout.marker.scale
-                : undefined
-            }
-            strokeLinejoin="round"
-            paintOrder="stroke"
-          />
+            opacity={config.markerOpacity < 1 ? config.markerOpacity : undefined}
+          >
+            {config.markerOutline ? (
+              // A halo in the outline colour behind the symbol.
+              <path
+                d={marker.path}
+                fill={config.markerOutlineColor}
+                fillRule={marker.fillRule}
+                stroke={config.markerOutlineColor}
+                strokeWidth={(config.markerOutlineWidth * 2) / layout.marker.scale}
+                strokeLinejoin="round"
+              />
+            ) : null}
+            {markerPaths(config.markerShape, config.markerStyle, config.markerColor).map(
+              (path, index) => (
+                <path
+                  key={index}
+                  d={path.d}
+                  fill={path.fill ?? 'none'}
+                  fillRule={marker.fillRule}
+                  stroke={path.stroke}
+                  strokeWidth={path.strokeWidth}
+                  strokeLinecap={path.stroke ? 'round' : undefined}
+                  strokeLinejoin={path.stroke ? 'round' : undefined}
+                />
+              ),
+            )}
+          </g>
         </g>
       ) : null}
 

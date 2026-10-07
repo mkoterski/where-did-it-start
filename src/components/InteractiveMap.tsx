@@ -12,7 +12,8 @@ import { ZOOM_RANGE } from '../domain/defaults';
 import { editorKeyholePixels, type PosterLayout } from '../domain/layout';
 import { buildMapStyle, mapStyleOptions } from '../domain/mapStyle';
 import { getShape, markerAnchor } from '../domain/shapes';
-import type { MarkerShape, PosterConfig } from '../domain/types';
+import { markerPaths, markerPathsMarkup } from '../domain/sketch';
+import type { MarkerShape, MarkerStyle, PosterConfig } from '../domain/types';
 
 export interface InteractiveMapHandle {
   /** Animate the editor map to a point (e.g. after choosing a search result). */
@@ -56,15 +57,20 @@ function clampZoom(zoom: number): number {
   return Math.min(ZOOM_RANGE.max, Math.max(ZOOM_RANGE.min, zoom));
 }
 
-function markerSvg(shape: MarkerShape, color: string): string {
+function markerSvg(shape: MarkerShape, style: MarkerStyle, color: string): string {
+  // "No marker" on the poster still needs a visible handle in the editor: a hollow ring.
   const def = getShape(shape === 'none' ? 'circle' : shape);
-  const fill = shape === 'none' ? 'none' : color;
-  const stroke = shape === 'none' ? color : '#fff';
+  const fillRule = def.fillRule ?? 'nonzero';
+  const body =
+    shape === 'none'
+      ? `<path d="${def.path}" fill="none" stroke="${color}" stroke-width="10"/>`
+      : // A white halo keeps the symbol visible on dark map areas.
+        `<path d="${def.path}" fill="#fff" fill-rule="${fillRule}" stroke="#fff" ` +
+        `stroke-width="12" stroke-linejoin="round"/>` +
+        markerPathsMarkup(markerPaths(shape, style, color), fillRule);
   return (
     `<span class="editor-marker__icon">` +
-    `<svg viewBox="-6 -6 112 112" aria-hidden="true" focusable="false">` +
-    `<path d="${def.path}" fill="${fill}" fill-rule="${def.fillRule ?? 'nonzero'}" ` +
-    `stroke="${stroke}" stroke-width="8" paint-order="stroke" stroke-linejoin="round"/></svg>` +
+    `<svg viewBox="-6 -6 112 112" aria-hidden="true" focusable="false">${body}</svg>` +
     `</span><span class="editor-marker__dot" aria-hidden="true"></span>`
   );
 }
@@ -290,6 +296,7 @@ export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: In
 
   // Marker: (re)create when its look changes, move when the location changes.
   const markerShape = config.markerShape;
+  const markerStyle = config.markerStyle;
   const markerColor = config.markerColor;
   useEffect(() => {
     const map = mapRef.current;
@@ -311,7 +318,7 @@ export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: In
       'aria-label',
       'Selected location. Drag it, or use the arrow keys to move it (hold Shift for larger steps).',
     );
-    element.innerHTML = markerSvg(markerShape, markerColor);
+    element.innerHTML = markerSvg(markerShape, markerStyle, markerColor);
 
     // The icon is 36px inside a 48px grab area (6px padding); 36px / 112 viewBox units.
     const unitPx = 36 / 112;
@@ -366,7 +373,7 @@ export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: In
     markerRef.current = marker;
     updateOverlay();
     return () => cancelAnimationFrame(frame);
-  }, [markerShape, markerColor, location === null]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [markerShape, markerStyle, markerColor, location === null]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Follow location changes (search, typed coordinates, drag) without fighting the user.
   const previousLocation = useRef(location);

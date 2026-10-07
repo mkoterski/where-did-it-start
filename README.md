@@ -19,8 +19,10 @@ download a print-ready PNG, PDF or SVG.
   hexagon or star. Outside the shape the map can be hidden, faded or fully visible. The editor
   map shows the same keyhole, anchored to the selected point, so what you see there is what is
   printed.
-- **Marker** on the exact spot: heart, circle, pin, star, diamond or none, with colour, size,
-  opacity, outline and shadow.
+- **Marker** on the exact spot: heart, circle, pin, star, diamond or none, drawn **by hand**
+  (felt-tip look, the default), as a **pencil sketch**, or **clean**, with colour, size, opacity,
+  outline and shadow. The hand-drawn wobble is generated with
+  [rough.js](https://roughjs.com) from a fixed seed, so preview and exports always match.
 - **Text**: main phrase, names, place label (filled in from the selected place, editable),
   coordinates in decimal (`48.15838°N 11.50194°E`) or degrees/minutes/seconds, four title
   fonts, size and alignment.

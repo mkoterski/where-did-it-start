@@ -6,6 +6,9 @@ export type MarkerShape = 'heart' | 'circle' | 'pin' | 'star' | 'diamond' | 'non
 
 export type ShapeId = FrameShape | MarkerShape;
 
+/** How the marker symbol is rendered: vector-clean, felt-tip pen, or pencil sketch. */
+export type MarkerStyle = 'clean' | 'drawn' | 'sketch';
+
 export type OutsideMode = 'hidden' | 'faded' | 'visible';
 export type CoordinateFormat = 'decimal' | 'dms';
 export type TextAlignment = 'left' | 'center' | 'right';
@@ -39,6 +42,7 @@ export interface PosterConfig {
   frameOutlineWidth: number;
 
   markerShape: MarkerShape;
+  markerStyle: MarkerStyle;
   markerColor: string;
   markerOpacity: number;
   /** Marker size in design units. */
