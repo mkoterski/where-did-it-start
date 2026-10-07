@@ -131,8 +131,8 @@ export const EXAMPLE_LOCATIONS: ExampleLocation[] = [
   {
     label: 'Berlin, Potsdamer Platz',
     location: {
-      latitude: 52.509652,
-      longitude: 13.37603,
+      latitude: 52.509711,
+      longitude: 13.376046,
       displayName: 'Potsdamer Platz, Berlin, Germany',
       name: 'Potsdamer Platz',
       city: 'Berlin',
