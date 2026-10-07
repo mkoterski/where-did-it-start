@@ -22,6 +22,26 @@ describe('buildMapStyle', () => {
     },
   );
 
+  it('adds the subway lines only when asked to, in their colour faded towards the paper', () => {
+    const without = buildMapStyle(mapStyleOptions(DEFAULT_CONFIG, false));
+    expect(without.sources.subway).toBeUndefined();
+    expect(without.layers.some((layer) => layer.id === 'subway')).toBe(false);
+
+    const style = buildMapStyle(
+      mapStyleOptions({ ...DEFAULT_CONFIG, showSubway: true, subwayFade: 0 }, false),
+    );
+    expect(validateStyleMin(style)).toEqual([]);
+    expect(style.sources.subway).toMatchObject({ type: 'geojson' });
+    const subway = style.layers.find((layer) => layer.id === 'subway');
+    expect(subway?.paint).toMatchObject({ 'line-color': DEFAULT_CONFIG.subwayColor });
+
+    const faded = buildMapStyle(
+      mapStyleOptions({ ...DEFAULT_CONFIG, showSubway: true, subwayFade: 0.9 }, false),
+    );
+    const fadedColor = faded.layers.find((layer) => layer.id === 'subway')?.paint;
+    expect(fadedColor).not.toMatchObject({ 'line-color': DEFAULT_CONFIG.subwayColor });
+  });
+
   it('uses the poster background as map background', () => {
     const style = buildMapStyle(
       mapStyleOptions({ ...DEFAULT_CONFIG, posterBackground: '#123456' }, false),

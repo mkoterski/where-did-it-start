@@ -10,6 +10,7 @@ import { markerHalo, markerPaths } from '../domain/sketch';
 import type { FontFace } from '../domain/typography';
 import { DETAIL_FONT, fontStack, getBodyFont, getTitleFont } from '../domain/typography';
 import type { PosterConfig } from '../domain/types';
+import { useI18n } from '../i18n/i18n';
 
 /** Opacity of the paper colour laid over the map outside the keyhole. */
 function outsideOpacity(config: PosterConfig): number {
@@ -122,6 +123,7 @@ export function PosterOverlay({
   height,
   maskFree = false,
 }: PosterOverlayProps) {
+  const { t } = useI18n();
   const frame = getShape(config.frameShape);
   const marker = getShape(config.markerShape);
   const { mapArea } = layout;
@@ -134,7 +136,7 @@ export function PosterOverlay({
   const placeholderTint = mixColors(config.textColor, config.posterBackground, 0.93);
 
   const locationLine = formatLocationLine(
-    config.locationLabel || (hasLocation ? '' : 'Your place'),
+    config.locationLabel || (hasLocation ? '' : t('poster.yourPlace')),
     config.location,
     {
       showCoordinates: config.showCoordinates,
@@ -211,7 +213,7 @@ export function PosterOverlay({
               fill={config.textColor}
               fillOpacity={0.6}
             >
-              Search for a place to begin
+              {t('poster.emptyHint')}
             </text>
           ) : null}
         </g>

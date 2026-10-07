@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import type { PosterLayout } from '../domain/layout';
 import { buildMapStyle, mapStyleOptions } from '../domain/mapStyle';
 import type { PosterConfig } from '../domain/types';
+import { keepSubwayLinesLoaded } from '../geodata/subwayLines';
 
 export type MapStatus = 'loading' | 'ready' | 'error';
 
@@ -59,7 +60,9 @@ export function PosterMap({ config, layout, pixelRatio, onStatusChange }: Poster
       statusRef.current?.('error');
     });
     map.on('idle', () => statusRef.current?.(tileErrorRef.current ? 'error' : 'ready'));
+    const stopSubwayLines = keepSubwayLinesLoaded(map);
     return () => {
+      stopSubwayLines();
       map.remove();
       mapRef.current = null;
     };

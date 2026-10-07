@@ -81,6 +81,11 @@ export interface PosterConfig {
   /** Used when `waterStyle` is 'color'. */
   waterColor: string;
   showBuildings: boolean;
+  /** Underground/metro lines, drawn on top of the streets. */
+  showSubway: boolean;
+  /** 0 = full ink colour, towards 1 = faded into the paper. */
+  subwayFade: number;
+  subwayColor: string;
   lineWeight: number;
   /** 0 – 1. Strength of minor streets relative to major roads. */
   mapContrast: number;

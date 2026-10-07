@@ -1,13 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LocationSelection } from '../domain/types';
 import { geocoder as defaultGeocoder } from './provider';
-import { isAbortError, type GeocodingProvider } from './types';
+import {
+  GeocodingError,
+  isAbortError,
+  type GeocodingErrorKind,
+  type GeocodingProvider,
+} from './types';
 
 export type SearchState =
   | { status: 'idle' }
   | { status: 'loading'; query: string }
   | { status: 'success'; query: string; results: LocationSelection[] }
-  | { status: 'error'; query: string; message: string };
+  /** `kind` picks the (translated) message shown to the user. */
+  | { status: 'error'; query: string; kind: GeocodingErrorKind | 'unknown'; message: string };
+
+function kindOf(error: unknown): GeocodingErrorKind | 'unknown' {
+  return error instanceof GeocodingError ? error.kind : 'unknown';
+}
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : 'Something went wrong while searching.';
@@ -31,7 +41,7 @@ export function useGeocodingSearch(provider: GeocodingProvider = defaultGeocoder
         if (!current.signal.aborted) setState({ status: 'success', query, results });
       } catch (error) {
         if (isAbortError(error) || current.signal.aborted) return;
-        setState({ status: 'error', query, message: messageOf(error) });
+        setState({ status: 'error', query, kind: kindOf(error), message: messageOf(error) });
       }
     },
     [provider],

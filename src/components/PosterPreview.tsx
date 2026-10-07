@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { loadPosterFonts } from '../domain/fontLoading';
 import type { PosterLayout } from '../domain/layout';
-import { getShape } from '../domain/shapes';
 import type { BodyFont, PosterConfig, TitleFont } from '../domain/types';
+import { useI18n } from '../i18n/i18n';
 import { PosterMap, type MapStatus } from './PosterMap';
 import { PosterOverlay } from './PosterOverlay';
 
@@ -47,6 +47,7 @@ const FRAME_PADDING: Record<PosterConfig['previewFrame'], number> = {
 };
 
 export function PosterPreview({ config, layout }: { config: PosterConfig; layout: PosterLayout }) {
+  const { t, lang } = useI18n();
   const [stageRef, stage] = useElementSize<HTMLDivElement>();
   const [mapStatus, setMapStatus] = useState<MapStatus>('loading');
   const fontsVersion = useFontsVersion(config.titleFont, config.bodyFont);
@@ -62,10 +63,17 @@ export function PosterPreview({ config, layout }: { config: PosterConfig; layout
   const pixelRatio = Math.max(1, Math.round(scale * dpr * 4) / 4);
 
   const description = config.location
-    ? `Poster preview: ${getShape(config.frameShape).label.toLowerCase()}-shaped map of ${
-        config.locationLabel || config.location.displayName
-      } with the text “${config.title}”${config.names ? ` and “${config.names}”` : ''}.`
-    : 'Poster preview. Choose a place to see your map.';
+    ? t('preview.description', {
+        // German nouns keep their capital letter.
+        shape:
+          lang === 'de'
+            ? t(`shapeName.${config.frameShape}`)
+            : t(`shapeName.${config.frameShape}`).toLowerCase(),
+        place: config.locationLabel || config.location.displayName,
+        title: config.title,
+        names: config.names ? t('preview.names', { names: config.names }) : '',
+      })
+    : t('preview.empty');
 
   return (
     <div
@@ -117,9 +125,7 @@ export function PosterPreview({ config, layout }: { config: PosterConfig; layout
           className={`map-chip preview__status${mapStatus === 'error' ? ' preview__status--error' : ''}`}
           role="status"
         >
-          {mapStatus === 'loading'
-            ? 'Loading map…'
-            : 'Some map tiles could not be loaded. Check your connection.'}
+          {mapStatus === 'loading' ? t('preview.loading') : t('preview.tilesError')}
         </p>
       ) : null}
     </div>

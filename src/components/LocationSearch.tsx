@@ -1,6 +1,7 @@
 import { useId, useRef, useState, type KeyboardEvent } from 'react';
 import type { LocationSelection } from '../domain/types';
 import type { SearchState } from '../geocoding/useGeocoding';
+import { useI18n } from '../i18n/i18n';
 
 interface LocationSearchProps {
   state: SearchState;
@@ -18,6 +19,7 @@ function focusSibling(list: HTMLElement | null, current: Element | null, step: n
 }
 
 export function LocationSearch({ state, onSearch, onSelect, onClear }: LocationSearchProps) {
+  const { t } = useI18n();
   const id = useId();
   const [query, setQuery] = useState('');
   const listRef = useRef<HTMLUListElement>(null);
@@ -51,13 +53,16 @@ export function LocationSearch({ state, onSearch, onSelect, onClear }: LocationS
   };
 
   let status = '';
-  if (state.status === 'loading') status = 'Searching…';
+  if (state.status === 'loading') status = t('search.searching');
   if (state.status === 'success') {
     status =
       results.length === 0
-        ? `No places found for “${state.query}”. Try adding a city or country.`
-        : `${results.length} ${results.length === 1 ? 'place' : 'places'} found. Choose the right one below.`;
+        ? t('search.noResults', { query: state.query })
+        : results.length === 1
+          ? t('search.resultsOne')
+          : t('search.resultsMany', { count: results.length });
   }
+  if (state.status === 'error') status = t(`search.error.${state.kind}`);
 
   return (
     <div className="search">
@@ -70,7 +75,7 @@ export function LocationSearch({ state, onSearch, onSelect, onClear }: LocationS
         }}
       >
         <label className="field__label" htmlFor={id}>
-          Address, place or landmark
+          {t('search.label')}
         </label>
         <div className="search__row">
           <input
@@ -80,7 +85,7 @@ export function LocationSearch({ state, onSearch, onSelect, onClear }: LocationS
             type="search"
             value={query}
             maxLength={200}
-            placeholder="e.g. Potsdamer Platz, Berlin"
+            placeholder={t('search.placeholder')}
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={onInputKeyDown}
             aria-describedby={`${id}-status`}
@@ -92,7 +97,7 @@ export function LocationSearch({ state, onSearch, onSelect, onClear }: LocationS
             type="submit"
             disabled={state.status === 'loading' || query.trim().length < 2}
           >
-            {state.status === 'loading' ? 'Searching…' : 'Search'}
+            {state.status === 'loading' ? t('search.searching') : t('search.button')}
           </button>
         </div>
       </form>
@@ -102,14 +107,14 @@ export function LocationSearch({ state, onSearch, onSelect, onClear }: LocationS
         className={`search__status${state.status === 'error' ? ' search__status--error' : ''}`}
         role={state.status === 'error' ? 'alert' : 'status'}
       >
-        {state.status === 'error' ? state.message : status}
+        {status}
       </p>
 
       {results.length > 0 ? (
         <ul
           ref={listRef}
           className="search__results"
-          aria-label="Search results"
+          aria-label={t('search.results')}
           onKeyDown={onListKeyDown}
         >
           {results.map((result) => (

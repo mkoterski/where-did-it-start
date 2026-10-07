@@ -14,6 +14,9 @@ import { buildMapStyle, mapStyleOptions } from '../domain/mapStyle';
 import { getShape, markerAnchor } from '../domain/shapes';
 import { markerHalo, markerPaths, markerPathsMarkup } from '../domain/sketch';
 import type { MarkerShape, MarkerStyle, PosterConfig } from '../domain/types';
+import { keepSubwayLinesLoaded } from '../geodata/subwayLines';
+import { useI18n } from '../i18n/i18n';
+import type { MessageKey } from '../i18n/messages';
 
 export interface InteractiveMapHandle {
   /** Animate the editor map to a point (e.g. after choosing a search result). */
@@ -40,11 +43,11 @@ const PRECISE_MAX_ZOOM = 20;
 const COMMIT_DELAY_MS = 400;
 
 type Direction = 'up' | 'down' | 'left' | 'right';
-const NUDGES: Record<Direction, { delta: [number, number]; label: string; arrow: string }> = {
-  left: { delta: [-1, 0], label: 'Move spot left', arrow: '←' },
-  up: { delta: [0, -1], label: 'Move spot up', arrow: '↑' },
-  down: { delta: [0, 1], label: 'Move spot down', arrow: '↓' },
-  right: { delta: [1, 0], label: 'Move spot right', arrow: '→' },
+const NUDGES: Record<Direction, { delta: [number, number]; label: MessageKey; arrow: string }> = {
+  left: { delta: [-1, 0], label: 'map.nudge.left', arrow: '←' },
+  up: { delta: [0, -1], label: 'map.nudge.up', arrow: '↑' },
+  down: { delta: [0, 1], label: 'map.nudge.down', arrow: '↓' },
+  right: { delta: [1, 0], label: 'map.nudge.right', arrow: '→' },
 };
 const ARROWS: Record<string, [number, number]> = {
   ArrowUp: [0, -1],
@@ -86,6 +89,7 @@ let markerHintDone = false;
  * zoom so that the keyhole always has a comfortable on-screen size.
  */
 export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: InteractiveMapProps) {
+  const { t } = useI18n();
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -109,9 +113,9 @@ export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: In
   const styleKey = JSON.stringify(mapStyleOptions(config, true));
 
   // Everything the imperative MapLibre handlers need, always current.
-  const live = useRef({ config, layout, offset, onPick, onZoomChange });
+  const live = useRef({ config, layout, offset, onPick, onZoomChange, t });
   useEffect(() => {
-    live.current = { config, layout, offset, onPick, onZoomChange };
+    live.current = { config, layout, offset, onPick, onZoomChange, t };
   });
 
   /** Moves the keyhole cut-out so that the shape's anchor sits on the marker. */
@@ -218,7 +222,7 @@ export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: In
     }
     mapRef.current = map;
     appliedStyleRef.current = styleKey;
-    map.getCanvas().setAttribute('aria-label', 'Editor map');
+    map.getCanvas().setAttribute('aria-label', live.current.t('map.canvas'));
     map.touchZoomRotate.disableRotation();
     map.keyboard.disableRotation();
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
@@ -261,6 +265,7 @@ export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: In
       if (Math.abs(next - current.zoom) > 0.001) live.current.onZoomChange(next);
     });
     map.on('click', (event) => live.current.onPick(event.lngLat.lat, event.lngLat.lng, true));
+    const stopSubwayLines = keepSubwayLinesLoaded(map);
 
     const observer = new ResizeObserver(() => {
       map.resize();
@@ -270,6 +275,7 @@ export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: In
 
     return () => {
       observer.disconnect();
+      stopSubwayLines();
       markerRef.current?.remove();
       markerRef.current = null;
       map.remove();
@@ -314,10 +320,7 @@ export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: In
     element.className = `editor-marker editor-marker--${markerShape}${
       markerHintDone ? '' : ' editor-marker--hint'
     }`;
-    element.setAttribute(
-      'aria-label',
-      'Selected location. Drag it, or use the arrow keys to move it (hold Shift for larger steps).',
-    );
+    element.setAttribute('aria-label', live.current.t('map.markerLabel'));
     element.innerHTML = markerSvg(markerShape, markerStyle, markerColor);
 
     // The icon is 36px inside a 48px grab area (6px padding); 36px / 112 viewBox units.
@@ -438,6 +441,12 @@ export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: In
     updateOverlay();
   }, [config.frameShape, layout.frame.scale, updateOverlay]);
 
+  // Labels of elements MapLibre owns follow the language too.
+  useEffect(() => {
+    mapRef.current?.getCanvas().setAttribute('aria-label', t('map.canvas'));
+    markerRef.current?.getElement().setAttribute('aria-label', t('map.markerLabel'));
+  }, [t]);
+
   const recenter = () => {
     if (!location) return;
     setPrecise(false);
@@ -471,47 +480,40 @@ export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: In
           ref={containerRef}
           className="interactive-map__canvas"
           role="application"
-          aria-label="Map. Click to place the location, drag to pan, scroll or use + and − to zoom."
+          aria-label={t('map.application')}
         />
         {location ? (
           <button type="button" className="map-chip interactive-map__recenter" onClick={recenter}>
-            Re-center
+            {t('map.recenter')}
           </button>
         ) : (
-          <p className="map-chip interactive-map__hint">
-            Click anywhere on the map to place your spot
-          </p>
+          <p className="map-chip interactive-map__hint">{t('map.clickHint')}</p>
         )}
         {location && precise ? (
           <p className="map-chip interactive-map__precise-note" role="status">
-            Precise placement · the poster zoom stays as it is
+            {t('map.preciseNote')}
           </p>
         ) : null}
         {status === 'loading' ? (
           <p className="interactive-map__status" role="status">
-            Loading map…
+            {t('map.loading')}
           </p>
         ) : null}
         {status === 'error' ? (
           <p className="interactive-map__status interactive-map__status--error" role="alert">
-            The map could not be loaded. Check your connection and reload the page.
+            {t('map.error')}
           </p>
         ) : null}
         {status === 'unsupported' ? (
           <p className="interactive-map__status interactive-map__status--error" role="alert">
-            Your browser cannot display the interactive map (WebGL is unavailable). You can still
-            search for a place or type coordinates.
+            {t('map.unsupported')}
           </p>
         ) : null}
       </div>
       {location && status !== 'unsupported' ? (
         <div className="map-tools">
           <p className="map-tools__hint">
-            <strong>
-              Drag the{' '}
-              {markerShape === 'none' ? 'marker' : getShape(markerShape).label.toLowerCase()}
-            </strong>{' '}
-            or click the map to move your spot. Use the arrows for small steps.
+            <strong>{t(`map.drag.${markerShape}`)}</strong> {t('map.dragHintRest')}
           </p>
           <div className="map-tools__row">
             <button
@@ -520,15 +522,12 @@ export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: In
               aria-pressed={precise}
               onClick={togglePrecise}
             >
-              {precise ? 'Done' : 'Precise placement'}
+              {precise ? t('map.done') : t('map.precise')}
             </button>
-            <div
-              className="map-tools__nudge"
-              role="group"
-              aria-label="Move the spot in small steps"
-            >
+            <div className="map-tools__nudge" role="group" aria-label={t('map.nudgeGroup')}>
               {(Object.keys(NUDGES) as Direction[]).map((direction) => {
-                const { delta, label, arrow } = NUDGES[direction];
+                const { delta, arrow } = NUDGES[direction];
+                const label = t(NUDGES[direction].label);
                 return (
                   <button
                     key={direction}

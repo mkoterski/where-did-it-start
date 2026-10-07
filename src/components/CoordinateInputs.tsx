@@ -1,5 +1,6 @@
 import { useId, useState, type ClipboardEvent } from 'react';
 import { parseCoordinate, parseCoordinatePair } from '../domain/coordinates';
+import { useI18n } from '../i18n/i18n';
 
 interface CoordinateInputsProps {
   latitude: number | null;
@@ -14,6 +15,7 @@ const show = (value: number | null) => (value === null ? '' : value.toFixed(6));
  * both. Remount (via `key`) to reset the drafts when the location changes elsewhere.
  */
 export function CoordinateInputs({ latitude, longitude, onApply }: CoordinateInputsProps) {
+  const { t } = useI18n();
   const id = useId();
   const [lat, setLat] = useState(show(latitude));
   const [lon, setLon] = useState(show(longitude));
@@ -21,10 +23,8 @@ export function CoordinateInputs({ latitude, longitude, onApply }: CoordinateInp
 
   const parsedLat = parseCoordinate(lat, 'latitude');
   const parsedLon = parseCoordinate(lon, 'longitude');
-  const latError =
-    touched && parsedLat === null ? 'Latitude must be a number between −90 and 90.' : '';
-  const lonError =
-    touched && parsedLon === null ? 'Longitude must be a number between −180 and 180.' : '';
+  const latError = touched && parsedLat === null ? t('coords.latError') : '';
+  const lonError = touched && parsedLon === null ? t('coords.lonError') : '';
 
   const onPaste = (event: ClipboardEvent<HTMLInputElement>) => {
     const pair = parseCoordinatePair(event.clipboardData.getData('text'));
@@ -47,7 +47,7 @@ export function CoordinateInputs({ latitude, longitude, onApply }: CoordinateInp
       <div className="coordinates__fields">
         <div className="field">
           <label className="field__label" htmlFor={`${id}-lat`}>
-            Latitude
+            {t('coords.latitude')}
           </label>
           <input
             id={`${id}-lat`}
@@ -63,7 +63,7 @@ export function CoordinateInputs({ latitude, longitude, onApply }: CoordinateInp
         </div>
         <div className="field">
           <label className="field__label" htmlFor={`${id}-lon`}>
-            Longitude
+            {t('coords.longitude')}
           </label>
           <input
             id={`${id}-lon`}
@@ -78,7 +78,7 @@ export function CoordinateInputs({ latitude, longitude, onApply }: CoordinateInp
           />
         </div>
         <button type="submit" className="button coordinates__apply">
-          Apply
+          {t('coords.apply')}
         </button>
       </div>
       {latError ? (

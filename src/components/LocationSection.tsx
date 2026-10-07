@@ -3,8 +3,8 @@ import { formatCoordinates } from '../domain/coordinates';
 import { EXAMPLE_LOCATIONS } from '../domain/defaults';
 import type { PosterLayout } from '../domain/layout';
 import type { LocationSelection, PosterConfig } from '../domain/types';
-import { geocoder } from '../geocoding/provider';
 import { useGeocodingSearch, type ReverseState } from '../geocoding/useGeocoding';
+import { useI18n } from '../i18n/i18n';
 import { Section } from './controls';
 import { CoordinateInputs } from './CoordinateInputs';
 import { InteractiveMap, type InteractiveMapHandle } from './InteractiveMap';
@@ -20,7 +20,7 @@ interface LocationSectionProps {
   onZoomChange(zoom: number): void;
 }
 
-type GeoState = { status: 'idle' } | { status: 'locating' } | { status: 'error'; message: string };
+type GeoState = { status: 'idle' } | { status: 'locating' } | { status: 'error'; denied: boolean };
 
 export function LocationSection({
   config,
@@ -31,6 +31,7 @@ export function LocationSection({
   onPick,
   onZoomChange,
 }: LocationSectionProps) {
+  const { t } = useI18n();
   const { state, search, clear } = useGeocodingSearch();
   const [geo, setGeo] = useState<GeoState>({ status: 'idle' });
   const location = config.location;
@@ -43,25 +44,18 @@ export function LocationSection({
         setGeo({ status: 'idle' });
         onPick(position.coords.latitude, position.coords.longitude);
       },
-      (error) =>
-        setGeo({
-          status: 'error',
-          message:
-            error.code === error.PERMISSION_DENIED
-              ? 'Location access was denied. You can search or click the map instead.'
-              : 'Your position could not be determined. Please search instead.',
-        }),
+      (error) => setGeo({ status: 'error', denied: error.code === error.PERMISSION_DENIED }),
       { enableHighAccuracy: true, timeout: 15_000 },
     );
   };
 
   return (
-    <Section title="1 · Location" description="Where did it all begin?">
+    <Section title={t('location.title')} description={t('location.description')}>
       <LocationSearch state={state} onSearch={search} onSelect={onSelect} onClear={clear} />
 
       {!location ? (
         <div className="examples">
-          <p className="field__hint">No idea where to start? Try one of these:</p>
+          <p className="field__hint">{t('location.examples')}</p>
           <div className="examples__list">
             {EXAMPLE_LOCATIONS.map((example) => (
               <button
@@ -90,25 +84,23 @@ export function LocationSection({
           <>
             <p className="location-summary__place">
               {reverseState.status === 'loading'
-                ? 'Looking up the place name…'
-                : location.displayName || 'Selected point'}
+                ? t('location.lookingUp')
+                : location.displayName || t('location.selectedPoint')}
             </p>
             <p className="location-summary__coords">
               {formatCoordinates(location.latitude, location.longitude, 'decimal', 6)}
             </p>
             {reverseState.status === 'error' ? (
-              <p className="field__error">
-                The place name could not be looked up. The coordinates are still correct.
-              </p>
+              <p className="field__error">{t('location.lookupFailed')}</p>
             ) : null}
           </>
         ) : (
-          <p className="location-summary__place">No place selected yet.</p>
+          <p className="location-summary__place">{t('location.none')}</p>
         )}
       </div>
 
       <details className="subsection">
-        <summary>Enter coordinates or use your position</summary>
+        <summary>{t('location.moreOptions')}</summary>
         <CoordinateInputs
           key={location ? `${location.latitude},${location.longitude}` : 'empty'}
           latitude={location?.latitude ?? null}
@@ -123,21 +115,19 @@ export function LocationSection({
               onClick={useMyLocation}
               disabled={geo.status === 'locating'}
             >
-              {geo.status === 'locating' ? 'Locating…' : 'Use my current position'}
+              {geo.status === 'locating' ? t('location.locating') : t('location.useMyPosition')}
             </button>
-            <p className="field__hint">
-              Your browser asks for permission first. The position is only used to place the map.
-            </p>
+            <p className="field__hint">{t('location.geoHint')}</p>
             {geo.status === 'error' ? (
               <p className="field__error" role="alert">
-                {geo.message}
+                {geo.denied ? t('location.geoDenied') : t('location.geoFailed')}
               </p>
             ) : null}
           </div>
         ) : null}
       </details>
 
-      <p className="attribution-note">{geocoder.attribution}</p>
+      <p className="attribution-note">{t('location.searchAttribution')}</p>
     </Section>
   );
 }

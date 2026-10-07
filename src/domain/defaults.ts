@@ -48,6 +48,9 @@ export const DEFAULT_CONFIG: PosterConfig = {
   waterStyle: 'color',
   waterColor: '#a6cde6',
   showBuildings: false,
+  showSubway: false,
+  subwayFade: 0.2,
+  subwayColor: '#2f5fa7',
   lineWeight: 1,
   mapContrast: 0.8,
 
@@ -57,8 +60,7 @@ export const DEFAULT_CONFIG: PosterConfig = {
 };
 
 export interface ThemePreset {
-  id: string;
-  label: string;
+  id: 'classic' | 'soft' | 'linen' | 'midnight';
   posterBackground: string;
   textColor: string;
   mapInk: string;
@@ -71,7 +73,6 @@ export interface ThemePreset {
 export const THEME_PRESETS: ThemePreset[] = [
   {
     id: 'classic',
-    label: 'Classic ink',
     posterBackground: '#fdfcf9',
     textColor: '#1b1b1b',
     mapInk: '#111111',
@@ -81,7 +82,6 @@ export const THEME_PRESETS: ThemePreset[] = [
   },
   {
     id: 'soft',
-    label: 'Soft grey',
     posterBackground: '#ffffff',
     textColor: '#2a2a2a',
     mapInk: '#3a3a3a',
@@ -91,7 +91,6 @@ export const THEME_PRESETS: ThemePreset[] = [
   },
   {
     id: 'linen',
-    label: 'Linen',
     posterBackground: '#f5efe4',
     textColor: '#3b2f28',
     mapInk: '#3b2f28',
@@ -101,7 +100,6 @@ export const THEME_PRESETS: ThemePreset[] = [
   },
   {
     id: 'midnight',
-    label: 'Midnight',
     posterBackground: '#151515',
     textColor: '#f3f0ea',
     mapInk: '#f3f0ea',

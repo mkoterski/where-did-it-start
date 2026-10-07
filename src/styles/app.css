@@ -113,6 +113,50 @@ select {
   font-size: 0.95rem;
 }
 
+.app-header__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.language-toggle {
+  display: inline-flex;
+  flex: none;
+  align-self: flex-start;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.language-toggle__option {
+  min-width: 40px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.language-toggle__option:hover {
+  color: var(--text);
+}
+
+.language-toggle__option[aria-pressed='true'] {
+  background: var(--text);
+  color: var(--surface);
+}
+
+.language-toggle__option:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: minmax(360px, 440px) minmax(0, 1fr);

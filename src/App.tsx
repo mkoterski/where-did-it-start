@@ -13,11 +13,43 @@ import type { ThemePreset } from './domain/defaults';
 import { computeLayout } from './domain/layout';
 import type { LocationSelection, PosterConfig } from './domain/types';
 import { useReverseGeocoding } from './geocoding/useGeocoding';
+import { LANGUAGES, useI18n } from './i18n/i18n';
+import { I18nProvider } from './i18n/I18nProvider';
 import { usePosterState } from './state/usePosterState';
 
 const UNDO_WINDOW_MS = 15_000;
 
 export default function App() {
+  return (
+    <I18nProvider>
+      <PosterApp />
+    </I18nProvider>
+  );
+}
+
+function LanguageToggle() {
+  const { lang, setLang, t } = useI18n();
+  return (
+    <div className="language-toggle" role="group" aria-label={t('app.language')}>
+      {LANGUAGES.map((option) => (
+        <button
+          key={option}
+          type="button"
+          lang={option}
+          className="language-toggle__option"
+          aria-pressed={lang === option}
+          aria-label={option === 'de' ? 'Deutsch' : 'English'}
+          onClick={() => setLang(option)}
+        >
+          {option.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function PosterApp() {
+  const { t } = useI18n();
   const [config, dispatch] = usePosterState();
   const layout = useMemo(() => computeLayout(config), [config]);
   const mapRef = useRef<InteractiveMapHandle>(null);
@@ -68,9 +100,16 @@ export default function App() {
 
   const changeZoom = useCallback((zoom: number) => update({ zoom }), [update]);
 
+  // An unedited default title follows the chosen language.
+  const defaultTitle = t('defaults.title');
+  useEffect(
+    () => dispatch({ type: 'localizeTitle', title: defaultTitle }),
+    [dispatch, defaultTitle],
+  );
+
   const reset = () => {
     setBeforeReset(config);
-    dispatch({ type: 'reset' });
+    dispatch({ type: 'reset', title: defaultTitle });
   };
 
   useEffect(() => {
@@ -82,7 +121,7 @@ export default function App() {
   return (
     <div className="app">
       <a className="skip-link" href="#preview">
-        Skip to poster preview
+        {t('app.skip')}
       </a>
       <header className="app-header">
         <svg className="app-header__mark" viewBox="0 0 100 100" aria-hidden="true">
@@ -91,16 +130,15 @@ export default function App() {
             fill="currentColor"
           />
         </svg>
-        <div>
-          <h1 className="app-header__title">Where it all began</h1>
-          <p className="app-header__tagline">
-            Turn the place your story started into a minimalist map poster.
-          </p>
+        <div className="app-header__text">
+          <h1 className="app-header__title">{t('app.title')}</h1>
+          <p className="app-header__tagline">{t('app.tagline')}</p>
         </div>
+        <LanguageToggle />
       </header>
 
       <main className="workspace">
-        <div className="editor" aria-label="Poster editor">
+        <div className="editor" aria-label={t('app.editor')}>
           <LocationSection
             config={config}
             layout={layout}
@@ -130,7 +168,7 @@ export default function App() {
           id="preview"
           ref={previewRef}
           tabIndex={-1}
-          aria-label="Poster preview and download"
+          aria-label={t('app.previewPane')}
         >
           <PosterPreview config={config} layout={layout} />
           <ExportPanel
@@ -155,18 +193,18 @@ export default function App() {
         aria-hidden={previewVisible || undefined}
         tabIndex={previewVisible ? -1 : undefined}
       >
-        See poster ↓
+        {t('app.seePoster')}
       </a>
 
       <footer className="app-footer">
         <p>
-          Map data ©{' '}
-          <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> · Tiles
-          by <a href="https://openfreemap.org">OpenFreeMap</a> ·{' '}
-          <a href="https://www.openmaptiles.org/">© OpenMapTiles</a> · Search by{' '}
+          {t('app.footer.mapData')}{' '}
+          <a href="https://www.openstreetmap.org/copyright">{t('app.footer.osm')}</a> ·{' '}
+          {t('app.footer.tiles')} <a href="https://openfreemap.org">OpenFreeMap</a> ·{' '}
+          <a href="https://www.openmaptiles.org/">© OpenMapTiles</a> · {t('app.footer.search')}{' '}
           <a href="https://nominatim.org">Nominatim</a>
         </p>
-        <p>Your design is saved in this browser only.</p>
+        <p>{t('app.footer.saved')}</p>
       </footer>
     </div>
   );

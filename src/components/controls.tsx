@@ -1,5 +1,6 @@
 import { useId, type ReactNode } from 'react';
 import type { MarkerPath } from '../domain/sketch';
+import { useI18n } from '../i18n/i18n';
 
 export function Section({
   title,
@@ -38,6 +39,7 @@ export function TextField({
   placeholder?: string;
   hint?: ReactNode;
 }) {
+  const { t } = useI18n();
   const id = useId();
   return (
     <div className="field">
@@ -47,7 +49,7 @@ export function TextField({
         </label>
         <span className="field__counter" id={`${id}-count`} aria-live="polite">
           {value.length}/{maxLength}
-          <span className="visually-hidden"> characters</span>
+          <span className="visually-hidden"> {t('controls.characters')}</span>
         </span>
       </div>
       <input
@@ -211,6 +213,7 @@ export function ColorField({
   onChange(value: string): void;
   swatches: Swatch[];
 }) {
+  const { t } = useI18n();
   const name = useId();
   const customId = useId();
   const isCustom = !swatches.some((swatch) => swatch.value === value.toLowerCase());
@@ -247,7 +250,8 @@ export function ColorField({
             onChange={(event) => onChange(event.target.value)}
           />
           <span className="swatch__custom-label">
-            Custom<span className="visually-hidden"> colour, currently {value}</span>
+            {t('controls.custom')}
+            <span className="visually-hidden"> {t('controls.customCurrent', { value })}</span>
           </span>
         </label>
       </div>

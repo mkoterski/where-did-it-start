@@ -10,7 +10,6 @@ export interface FontFace {
 
 export interface TitleFontDefinition extends FontFace {
   id: TitleFont;
-  label: string;
   /** Script faces are optically smaller than serif/sans faces at the same size. */
   sizeFactor: number;
   letterSpacing: number;
@@ -19,7 +18,6 @@ export interface TitleFontDefinition extends FontFace {
 export const TITLE_FONTS: TitleFontDefinition[] = [
   {
     id: 'sacramento',
-    label: 'Handwritten (Sacramento)',
     family: 'Sacramento',
     weight: 400,
     style: 'normal',
@@ -28,7 +26,6 @@ export const TITLE_FONTS: TitleFontDefinition[] = [
   },
   {
     id: 'great-vibes',
-    label: 'Calligraphy (Great Vibes)',
     family: 'Great Vibes',
     weight: 400,
     style: 'normal',
@@ -37,7 +34,6 @@ export const TITLE_FONTS: TitleFontDefinition[] = [
   },
   {
     id: 'playfair',
-    label: 'Serif italic (Playfair Display)',
     family: 'Playfair Display',
     weight: 400,
     style: 'italic',
@@ -47,7 +43,6 @@ export const TITLE_FONTS: TitleFontDefinition[] = [
   },
   {
     id: 'jost',
-    label: 'Modern sans (Jost)',
     family: 'Jost',
     weight: 300,
     style: 'normal',
@@ -62,7 +57,6 @@ export const DETAIL_FONT: FontFace = { family: 'Jost', weight: 300, style: 'norm
 
 export interface BodyFontDefinition {
   id: BodyFont;
-  label: string;
   /** Face for the names line. */
   names: FontFace;
   /** Face for the place and coordinates line. */
@@ -76,7 +70,6 @@ export interface BodyFontDefinition {
 export const BODY_FONTS: BodyFontDefinition[] = [
   {
     id: 'jost',
-    label: 'Modern sans (Jost)',
     names: NAMES_FONT,
     detail: DETAIL_FONT,
     sizeFactor: 1,
@@ -85,7 +78,6 @@ export const BODY_FONTS: BodyFontDefinition[] = [
   },
   {
     id: 'cormorant',
-    label: 'Elegant serif (Cormorant Garamond)',
     names: { family: 'Cormorant Garamond', weight: 500, style: 'normal', fallback: 'serif' },
     detail: { family: 'Cormorant Garamond', weight: 500, style: 'normal', fallback: 'serif' },
     sizeFactor: 1.2,
@@ -94,7 +86,6 @@ export const BODY_FONTS: BodyFontDefinition[] = [
   },
   {
     id: 'josefin',
-    label: 'Vintage sans (Josefin Sans)',
     names: { family: 'Josefin Sans', weight: 400, style: 'normal', fallback: 'sans-serif' },
     detail: { family: 'Josefin Sans', weight: 300, style: 'normal', fallback: 'sans-serif' },
     sizeFactor: 1.05,
@@ -103,7 +94,6 @@ export const BODY_FONTS: BodyFontDefinition[] = [
   },
   {
     id: 'courier',
-    label: 'Typewriter (Courier Prime)',
     names: { family: 'Courier Prime', weight: 400, style: 'normal', fallback: 'monospace' },
     detail: { family: 'Courier Prime', weight: 400, style: 'normal', fallback: 'monospace' },
     sizeFactor: 0.92,

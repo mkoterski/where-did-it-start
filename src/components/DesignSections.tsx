@@ -6,6 +6,8 @@ import { FRAME_SHAPES, getShape, MARKER_SHAPES } from '../domain/shapes';
 import { markerPaths } from '../domain/sketch';
 import { BODY_FONTS, TITLE_FONTS } from '../domain/typography';
 import type { PosterConfig } from '../domain/types';
+import { useI18n } from '../i18n/i18n';
+import type { MessageKey } from '../i18n/messages';
 import {
   ColorField,
   RangeField,
@@ -23,62 +25,86 @@ interface SectionProps {
   update(patch: Partial<PosterConfig>): void;
 }
 
-const MARKER_SWATCHES: Swatch[] = [
-  { value: '#d7263d', name: 'Red' },
-  { value: '#e8698a', name: 'Rose' },
-  { value: '#c9a227', name: 'Gold' },
-  { value: '#1f4e79', name: 'Navy' },
-  { value: '#111111', name: 'Black' },
-  { value: '#ffffff', name: 'White' },
+const MARKER_SWATCHES: NamedSwatch[] = [
+  { value: '#d7263d', name: 'color.red' },
+  { value: '#e8698a', name: 'color.rose' },
+  { value: '#c9a227', name: 'color.gold' },
+  { value: '#1f4e79', name: 'color.navy' },
+  { value: '#111111', name: 'color.black' },
+  { value: '#ffffff', name: 'color.white' },
 ];
 
-const PAPER_SWATCHES: Swatch[] = [
-  { value: '#fdfcf9', name: 'Warm white' },
-  { value: '#ffffff', name: 'Pure white' },
-  { value: '#f5efe4', name: 'Linen' },
-  { value: '#e9eef0', name: 'Fog' },
-  { value: '#151515', name: 'Charcoal' },
+const PAPER_SWATCHES: NamedSwatch[] = [
+  { value: '#fdfcf9', name: 'color.warmWhite' },
+  { value: '#ffffff', name: 'color.pureWhite' },
+  { value: '#f5efe4', name: 'color.linen' },
+  { value: '#e9eef0', name: 'color.fog' },
+  { value: '#151515', name: 'color.charcoal' },
 ];
 
-const INK_SWATCHES: Swatch[] = [
-  { value: '#111111', name: 'Black' },
-  { value: '#1b1b1b', name: 'Charcoal' },
-  { value: '#3a3a3a', name: 'Graphite' },
-  { value: '#3b2f28', name: 'Sepia' },
-  { value: '#1f3a5f', name: 'Ink blue' },
-  { value: '#f3f0ea', name: 'Off-white' },
+const INK_SWATCHES: NamedSwatch[] = [
+  { value: '#111111', name: 'color.black' },
+  { value: '#1b1b1b', name: 'color.charcoal' },
+  { value: '#3a3a3a', name: 'color.graphite' },
+  { value: '#3b2f28', name: 'color.sepia' },
+  { value: '#1f3a5f', name: 'color.inkBlue' },
+  { value: '#f3f0ea', name: 'color.offWhite' },
 ];
 
-const WATER_SWATCHES: Swatch[] = [
-  { value: '#a6cde6', name: 'Light blue' },
-  { value: '#cfe6f3', name: 'Pale blue' },
-  { value: '#7fb2d4', name: 'River blue' },
-  { value: '#9fd3cf', name: 'Lagoon' },
-  { value: '#3d6580', name: 'Deep blue' },
+const WATER_SWATCHES: NamedSwatch[] = [
+  { value: '#a6cde6', name: 'color.lightBlue' },
+  { value: '#cfe6f3', name: 'color.paleBlue' },
+  { value: '#7fb2d4', name: 'color.riverBlue' },
+  { value: '#9fd3cf', name: 'color.lagoon' },
+  { value: '#3d6580', name: 'color.deepBlue' },
 ];
+
+const SUBWAY_SWATCHES: NamedSwatch[] = [
+  { value: '#2f5fa7', name: 'color.subwayBlue' },
+  { value: '#e07b28', name: 'color.orange' },
+  { value: '#3c8d5a', name: 'color.green' },
+  { value: '#d7263d', name: 'color.red' },
+  { value: '#8a8a8a', name: 'color.grey' },
+  { value: '#111111', name: 'color.black' },
+];
+
+const OUTLINE_SWATCHES: NamedSwatch[] = [
+  { value: '#ffffff', name: 'color.white' },
+  { value: '#111111', name: 'color.black' },
+];
+
+/** A swatch whose name is translated when shown. */
+type NamedSwatch = Omit<Swatch, 'name'> & { name: MessageKey };
+
+function useSwatches() {
+  const { t } = useI18n();
+  return (list: NamedSwatch[]): Swatch[] =>
+    list.map((swatch) => ({ ...swatch, name: t(swatch.name) }));
+}
 
 const pct = (value: number) => `${Math.round(value * 100)}%`;
 
 export function ShapeSection({ config, update, layout }: SectionProps & { layout: PosterLayout }) {
+  const { t } = useI18n();
   const across = config.location
     ? groundDistanceKm(layout.frameExtent, config.zoom, config.location.latitude)
     : null;
 
   return (
-    <Section title="2 · Shape" description="The keyhole that reveals your map">
+    <Section title={t('shape.title')} description={t('shape.description')}>
       <Segmented
-        legend="Shape"
+        legend={t('shape.legend')}
         variant="tiles"
         value={config.frameShape}
         onChange={(frameShape) => update({ frameShape })}
         options={FRAME_SHAPES.map((id) => ({
           value: id,
-          label: getShape(id).label,
+          label: t(`shapeName.${id}`),
           icon: <ShapeIcon path={getShape(id).path} />,
         }))}
       />
       <RangeField
-        label="Map zoom"
+        label={t('shape.zoom')}
         min={ZOOM_RANGE.min}
         max={ZOOM_RANGE.max}
         step={0.1}
@@ -87,12 +113,12 @@ export function ShapeSection({ config, update, layout }: SectionProps & { layout
         format={(zoom) =>
           across === null
             ? zoom.toFixed(1)
-            : `${zoom.toFixed(1)} · ≈ ${across < 10 ? across.toFixed(1) : Math.round(across)} km across`
+            : `${zoom.toFixed(1)} · ${t('shape.across', { km: across < 10 ? across.toFixed(1) : Math.round(across) })}`
         }
       />
-      <p className="field__hint">Tip: zooming the map above changes the poster zoom too.</p>
+      <p className="field__hint">{t('shape.zoomTip')}</p>
       <RangeField
-        label="Shape size"
+        label={t('shape.size')}
         min={0.4}
         max={1}
         step={0.01}
@@ -101,18 +127,18 @@ export function ShapeSection({ config, update, layout }: SectionProps & { layout
         format={pct}
       />
       <Segmented
-        legend="Map outside the shape"
+        legend={t('shape.outside')}
         value={config.outside}
         onChange={(outside) => update({ outside })}
         options={[
-          { value: 'hidden', label: 'Hidden' },
-          { value: 'faded', label: 'Faded' },
-          { value: 'visible', label: 'Visible' },
+          { value: 'hidden', label: t('outside.hidden') },
+          { value: 'faded', label: t('outside.faded') },
+          { value: 'visible', label: t('outside.visible') },
         ]}
       />
       {config.outside === 'faded' ? (
         <RangeField
-          label="Fade strength"
+          label={t('shape.fade')}
           min={0.1}
           max={0.95}
           step={0.05}
@@ -122,13 +148,13 @@ export function ShapeSection({ config, update, layout }: SectionProps & { layout
         />
       ) : null}
       <Toggle
-        label="Outline the shape"
+        label={t('shape.outline')}
         checked={config.frameOutline}
         onChange={(frameOutline) => update({ frameOutline })}
       />
       {config.frameOutline ? (
         <RangeField
-          label="Shape outline width"
+          label={t('shape.outlineWidth')}
           min={0.5}
           max={12}
           step={0.5}
@@ -141,17 +167,19 @@ export function ShapeSection({ config, update, layout }: SectionProps & { layout
 }
 
 export function MarkerSection({ config, update }: SectionProps) {
+  const { t } = useI18n();
+  const named = useSwatches();
   const hasMarker = config.markerShape !== 'none';
   return (
-    <Section title="3 · Marker" description="The symbol on your exact spot" defaultOpen={false}>
+    <Section title={t('marker.title')} description={t('marker.description')} defaultOpen={false}>
       <Segmented
-        legend="Marker symbol"
+        legend={t('marker.symbol')}
         variant="tiles"
         value={config.markerShape}
         onChange={(markerShape) => update({ markerShape })}
         options={MARKER_SHAPES.map((id) => ({
           value: id,
-          label: getShape(id).label,
+          label: t(`shapeName.${id}`),
           icon: (
             <ShapeIcon
               path={getShape(id).path}
@@ -166,25 +194,25 @@ export function MarkerSection({ config, update }: SectionProps) {
       {hasMarker ? (
         <>
           <Segmented
-            legend="Marker look"
+            legend={t('marker.look')}
             value={config.markerStyle}
             onChange={(markerStyle) => update({ markerStyle })}
             options={[
-              { value: 'brush-fill', label: 'Brush' },
-              { value: 'brush', label: 'Brush outline' },
-              { value: 'drawn', label: 'Felt-tip' },
-              { value: 'sketch', label: 'Pencil' },
-              { value: 'clean', label: 'Clean' },
+              { value: 'brush-fill', label: t('look.brush-fill') },
+              { value: 'brush', label: t('look.brush') },
+              { value: 'drawn', label: t('look.drawn') },
+              { value: 'sketch', label: t('look.sketch') },
+              { value: 'clean', label: t('look.clean') },
             ]}
           />
           <ColorField
-            label="Marker colour"
+            label={t('marker.color')}
             value={config.markerColor}
             onChange={(markerColor) => update({ markerColor })}
-            swatches={MARKER_SWATCHES}
+            swatches={named(MARKER_SWATCHES)}
           />
           <RangeField
-            label="Marker size"
+            label={t('marker.size')}
             min={16}
             max={160}
             step={1}
@@ -192,7 +220,7 @@ export function MarkerSection({ config, update }: SectionProps) {
             onChange={(markerSize) => update({ markerSize })}
           />
           <RangeField
-            label="Marker opacity"
+            label={t('marker.opacity')}
             min={0.1}
             max={1}
             step={0.05}
@@ -201,14 +229,14 @@ export function MarkerSection({ config, update }: SectionProps) {
             format={pct}
           />
           <Toggle
-            label="Outline the marker"
+            label={t('marker.outline')}
             checked={config.markerOutline}
             onChange={(markerOutline) => update({ markerOutline })}
           />
           {config.markerOutline ? (
             <>
               <RangeField
-                label="Marker outline width"
+                label={t('marker.outlineWidth')}
                 min={1}
                 max={12}
                 step={0.5}
@@ -216,18 +244,15 @@ export function MarkerSection({ config, update }: SectionProps) {
                 onChange={(markerOutlineWidth) => update({ markerOutlineWidth })}
               />
               <ColorField
-                label="Outline colour"
+                label={t('marker.outlineColor')}
                 value={config.markerOutlineColor}
                 onChange={(markerOutlineColor) => update({ markerOutlineColor })}
-                swatches={[
-                  { value: '#ffffff', name: 'White' },
-                  { value: '#111111', name: 'Black' },
-                ]}
+                swatches={named(OUTLINE_SWATCHES)}
               />
             </>
           ) : null}
           <Toggle
-            label="Soft shadow under the marker"
+            label={t('marker.shadow')}
             checked={config.markerShadow}
             onChange={(markerShadow) => update({ markerShadow })}
           />
@@ -243,57 +268,58 @@ export function TextSection({
   onLabelChange,
   onUseAutomaticLabel,
 }: SectionProps & { onLabelChange(value: string): void; onUseAutomaticLabel(): void }) {
+  const { t } = useI18n();
   return (
-    <Section title="4 · Text" description="Title, names and place">
+    <Section title={t('text.title')} description={t('text.description')}>
       <TextField
-        label="Main phrase"
+        label={t('text.mainPhrase')}
         value={config.title}
         maxLength={TEXT_LIMITS.title}
-        placeholder="Where it all began..."
+        placeholder={t('defaults.title')}
         onChange={(title) => update({ title })}
       />
       <TextField
-        label="Names"
+        label={t('text.names')}
         value={config.names}
         maxLength={TEXT_LIMITS.names}
         placeholder="Anita & Matthias"
         onChange={(names) => update({ names })}
       />
       <TextField
-        label="Place label"
+        label={t('text.placeLabel')}
         value={config.locationLabel}
         maxLength={TEXT_LIMITS.locationLabel}
-        placeholder={config.location ? 'e.g. Berlin' : 'Filled in when you choose a place'}
+        placeholder={config.location ? t('text.placePlaceholder') : t('text.placePlaceholderEmpty')}
         onChange={onLabelChange}
         hint={
           config.locationLabelCustom && config.location ? (
             <button type="button" className="link-button" onClick={onUseAutomaticLabel}>
-              Use the place name again
+              {t('text.useAutomatic')}
             </button>
           ) : (
-            'Filled in automatically from the selected place. Edit it freely.'
+            t('text.autoHint')
           )
         }
       />
       <Toggle
-        label="Show coordinates"
+        label={t('text.showCoordinates')}
         checked={config.showCoordinates}
         onChange={(showCoordinates) => update({ showCoordinates })}
       />
       {config.showCoordinates ? (
         <div className="field-grid">
           <SelectField
-            label="Coordinate format"
+            label={t('text.coordFormat')}
             value={config.coordinateFormat}
             onChange={(coordinateFormat) => update({ coordinateFormat })}
             options={[
-              { value: 'decimal', label: 'Decimal · 48.15838°N' },
-              { value: 'dms', label: 'Degrees · 48°09\'30.2"N' },
+              { value: 'decimal', label: t('text.decimal') },
+              { value: 'dms', label: t('text.dms') },
             ]}
           />
           {config.coordinateFormat === 'decimal' ? (
             <SelectField
-              label="Decimals"
+              label={t('text.decimals')}
               value={String(config.coordinatePrecision)}
               onChange={(value) => update({ coordinatePrecision: Number(value) })}
               options={['2', '3', '4', '5', '6'].map((value) => ({ value, label: value }))}
@@ -302,19 +328,19 @@ export function TextSection({
         </div>
       ) : null}
       <SelectField
-        label="Title font"
+        label={t('text.titleFont')}
         value={config.titleFont}
         onChange={(titleFont) => update({ titleFont })}
-        options={TITLE_FONTS.map((font) => ({ value: font.id, label: font.label }))}
+        options={TITLE_FONTS.map((font) => ({ value: font.id, label: t(`titleFont.${font.id}`) }))}
       />
       <SelectField
-        label="Text font (names and place)"
+        label={t('text.bodyFont')}
         value={config.bodyFont}
         onChange={(bodyFont) => update({ bodyFont })}
-        options={BODY_FONTS.map((font) => ({ value: font.id, label: font.label }))}
+        options={BODY_FONTS.map((font) => ({ value: font.id, label: t(`bodyFont.${font.id}`) }))}
       />
       <RangeField
-        label="Title size"
+        label={t('text.titleSize')}
         min={0.5}
         max={1.6}
         step={0.05}
@@ -323,20 +349,20 @@ export function TextSection({
         format={pct}
       />
       <Segmented
-        legend="Text alignment"
+        legend={t('text.alignment')}
         value={config.textAlignment}
         onChange={(textAlignment) => update({ textAlignment })}
         options={[
-          { value: 'left', label: 'Left' },
-          { value: 'center', label: 'Centre' },
-          { value: 'right', label: 'Right' },
+          { value: 'left', label: t('align.left') },
+          { value: 'center', label: t('align.center') },
+          { value: 'right', label: t('align.right') },
         ]}
       />
       <Toggle
-        label="Print map attribution"
+        label={t('text.attribution')}
         checked={config.showAttribution}
         onChange={(showAttribution) => update({ showAttribution })}
-        description="OpenStreetMap data is free to use when credited. Keep this on if you share or sell the poster."
+        description={t('text.attributionHint')}
       />
     </Section>
   );
@@ -347,10 +373,16 @@ export function AppearanceSection({
   update,
   onPreset,
 }: SectionProps & { onPreset(preset: ThemePreset): void }) {
+  const { t } = useI18n();
+  const named = useSwatches();
   return (
-    <Section title="5 · Appearance" description="Colours, map style and paper" defaultOpen={false}>
+    <Section
+      title={t('appearance.title')}
+      description={t('appearance.description')}
+      defaultOpen={false}
+    >
       <fieldset className="presets">
-        <legend className="field__label">Colour presets</legend>
+        <legend className="field__label">{t('appearance.presets')}</legend>
         <div className="presets__list">
           {THEME_PRESETS.map((preset) => (
             <button
@@ -370,50 +402,50 @@ export function AppearanceSection({
                 style={{ background: preset.markerColor }}
                 aria-hidden="true"
               />
-              {preset.label}
+              {t(`preset.${preset.id}`)}
             </button>
           ))}
         </div>
       </fieldset>
       <ColorField
-        label="Poster background"
+        label={t('appearance.background')}
         value={config.posterBackground}
         onChange={(posterBackground) => update({ posterBackground })}
-        swatches={PAPER_SWATCHES}
+        swatches={named(PAPER_SWATCHES)}
       />
       <ColorField
-        label="Map lines"
+        label={t('appearance.mapLines')}
         value={config.mapInk}
         onChange={(mapInk) => update({ mapInk })}
-        swatches={INK_SWATCHES}
+        swatches={named(INK_SWATCHES)}
       />
       <ColorField
-        label="Text colour"
+        label={t('appearance.textColor')}
         value={config.textColor}
         onChange={(textColor) => update({ textColor })}
-        swatches={INK_SWATCHES}
+        swatches={named(INK_SWATCHES)}
       />
       <Segmented
-        legend="Water"
+        legend={t('appearance.water')}
         value={config.waterStyle}
         onChange={(waterStyle) => update({ waterStyle })}
         options={[
-          { value: 'color', label: 'Colour' },
-          { value: 'ink', label: 'Solid ink' },
-          { value: 'tint', label: 'Tinted' },
-          { value: 'outline', label: 'Outline' },
+          { value: 'color', label: t('water.color') },
+          { value: 'ink', label: t('water.ink') },
+          { value: 'tint', label: t('water.tint') },
+          { value: 'outline', label: t('water.outline') },
         ]}
       />
       {config.waterStyle === 'color' ? (
         <ColorField
-          label="Water colour"
+          label={t('appearance.waterColor')}
           value={config.waterColor}
           onChange={(waterColor) => update({ waterColor })}
-          swatches={WATER_SWATCHES}
+          swatches={named(WATER_SWATCHES)}
         />
       ) : null}
       <RangeField
-        label="Street contrast"
+        label={t('appearance.contrast')}
         min={0}
         max={1}
         step={0.05}
@@ -422,7 +454,7 @@ export function AppearanceSection({
         format={pct}
       />
       <RangeField
-        label="Line weight"
+        label={t('appearance.lineWeight')}
         min={0.4}
         max={2.5}
         step={0.05}
@@ -431,36 +463,61 @@ export function AppearanceSection({
         format={pct}
       />
       <Toggle
-        label="Show buildings"
+        label={t('appearance.buildings')}
         checked={config.showBuildings}
         onChange={(showBuildings) => update({ showBuildings })}
       />
+      <Toggle
+        label={t('appearance.subway')}
+        checked={config.showSubway}
+        onChange={(showSubway) => update({ showSubway })}
+        description={t('appearance.subwayHint')}
+      />
+      {config.showSubway ? (
+        <>
+          <ColorField
+            label={t('appearance.subwayColor')}
+            value={config.subwayColor}
+            onChange={(subwayColor) => update({ subwayColor })}
+            swatches={named(SUBWAY_SWATCHES)}
+          />
+          <RangeField
+            label={t('appearance.subwayFade')}
+            min={0}
+            max={0.9}
+            step={0.05}
+            value={config.subwayFade}
+            onChange={(subwayFade) => update({ subwayFade })}
+            format={pct}
+          />
+        </>
+      ) : null}
       <div className="field-grid">
         <SelectField
-          label="Paper size"
+          label={t('appearance.paper')}
           value={config.paperSize}
           onChange={(paperSize) => update({ paperSize })}
-          options={PAPER_SIZES.map((paper) => ({ value: paper.id, label: paper.label }))}
+          options={PAPER_SIZES.map((paper) => ({ value: paper.id, label: t(`paper.${paper.id}`) }))}
         />
         <SelectField
-          label="Orientation"
+          label={t('appearance.orientation')}
           value={config.orientation}
           onChange={(orientation) => update({ orientation })}
           options={[
-            { value: 'portrait', label: 'Portrait' },
-            { value: 'landscape', label: 'Landscape' },
+            { value: 'portrait', label: t('orientation.portrait') },
+            { value: 'landscape', label: t('orientation.landscape') },
           ]}
         />
       </div>
       <Segmented
-        legend="Frame in preview (not printed)"
+        legend={t('appearance.frame')}
         value={config.previewFrame}
         onChange={(previewFrame) => update({ previewFrame })}
         options={[
-          { value: 'none', label: 'None' },
-          { value: 'black', label: 'Black' },
-          { value: 'white', label: 'White' },
-          { value: 'oak', label: 'Oak' },
+          { value: 'none', label: t('frame.none') },
+          { value: 'black', label: t('frame.black') },
+          { value: 'white', label: t('frame.white') },
+          { value: 'oak', label: t('frame.oak') },
         ]}
       />
     </Section>

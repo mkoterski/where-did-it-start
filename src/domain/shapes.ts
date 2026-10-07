@@ -11,7 +11,6 @@ import type { FrameShape, MarkerShape, ShapeId } from './types';
  */
 export interface ShapeDefinition {
   id: ShapeId;
-  label: string;
   path: string;
   anchor: { x: number; y: number };
   bbox: { x: number; y: number; width: number; height: number };
@@ -59,21 +58,18 @@ const HEXAGON_POINTS = regularPolygon(6, 49, 50, 50);
 export const SHAPES: Record<ShapeId, ShapeDefinition> = {
   heart: {
     id: 'heart',
-    label: 'Heart',
     path: HEART,
     anchor: { x: 50, y: 46 },
     bbox: { x: 2, y: 5, width: 96, height: 90 },
   },
   circle: {
     id: 'circle',
-    label: 'Circle',
     path: 'M2 50 A48 48 0 1 0 98 50 A48 48 0 1 0 2 50 Z',
     anchor: { x: 50, y: 50 },
     bbox: { x: 2, y: 2, width: 96, height: 96 },
   },
   'rounded-square': {
     id: 'rounded-square',
-    label: 'Rounded square',
     path:
       'M16 3 H84 A13 13 0 0 1 97 16 V84 A13 13 0 0 1 84 97 H16 ' +
       'A13 13 0 0 1 3 84 V16 A13 13 0 0 1 16 3 Z',
@@ -82,28 +78,24 @@ export const SHAPES: Record<ShapeId, ShapeDefinition> = {
   },
   diamond: {
     id: 'diamond',
-    label: 'Diamond',
     path: 'M50 2 L98 50 L50 98 L2 50 Z',
     anchor: { x: 50, y: 50 },
     bbox: { x: 2, y: 2, width: 96, height: 96 },
   },
   hexagon: {
     id: 'hexagon',
-    label: 'Hexagon',
     path: polygon(HEXAGON_POINTS),
     anchor: { x: 50, y: 50 },
     bbox: boundsOf(HEXAGON_POINTS),
   },
   star: {
     id: 'star',
-    label: 'Star',
     path: polygon(STAR_POINTS),
     anchor: { x: 50, y: 56 },
     bbox: boundsOf(STAR_POINTS),
   },
   pin: {
     id: 'pin',
-    label: 'Pin',
     path:
       'M50 98 C46 90 17 61 17 35 A33 33 0 0 1 83 35 C83 61 54 90 50 98 Z ' +
       'M50 22 A13 13 0 1 0 50 48 A13 13 0 1 0 50 22 Z',
@@ -113,7 +105,6 @@ export const SHAPES: Record<ShapeId, ShapeDefinition> = {
   },
   none: {
     id: 'none',
-    label: 'None',
     path: '',
     anchor: { x: 50, y: 50 },
     bbox: { x: 0, y: 0, width: 100, height: 100 },

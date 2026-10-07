@@ -61,7 +61,8 @@ export function toLocation(place: NominatimPlace): LocationSelection | null {
 interface NominatimOptions {
   baseUrl?: string;
   email?: string;
-  language?: string;
+  /** Preferred result language, or a function returning the current one. */
+  language?: string | (() => string | undefined);
   fetchImpl?: typeof fetch;
   minIntervalMs?: number;
 }
@@ -74,7 +75,8 @@ export function createNominatimProvider(options: NominatimOptions = {}): Geocodi
 
   async function request<T>(path: string, params: Record<string, string>, signal?: AbortSignal) {
     const search = new URLSearchParams({ format: 'jsonv2', addressdetails: '1', ...params });
-    if (options.language) search.set('accept-language', options.language);
+    const language = typeof options.language === 'function' ? options.language() : options.language;
+    if (language) search.set('accept-language', language);
     if (options.email) search.set('email', options.email);
     const url = `${baseUrl}/${path}?${search.toString()}`;
 

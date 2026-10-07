@@ -1,6 +1,12 @@
 import { deriveLocationLabel, sanitizeConfig } from '../domain/config';
 import { DEFAULT_CONFIG, TEXT_LIMITS, type ThemePreset } from '../domain/defaults';
 import type { LocationSelection, PosterConfig } from '../domain/types';
+import { MESSAGES } from '../i18n/messages';
+
+/** The untouched default title in every language. */
+const DEFAULT_TITLES = new Set(
+  Object.values(MESSAGES).map((messages) => messages['defaults.title']),
+);
 
 export type PosterAction =
   | { type: 'update'; patch: Partial<PosterConfig> }
@@ -13,7 +19,10 @@ export type PosterAction =
   | { type: 'setLocationLabel'; value: string }
   | { type: 'useAutomaticLabel' }
   | { type: 'applyPreset'; preset: ThemePreset }
-  | { type: 'reset' }
+  /** `title` is the default title in the current language. */
+  | { type: 'reset'; title?: string }
+  /** Swap an unedited default title for the one in the current language. */
+  | { type: 'localizeTitle'; title: string }
   | { type: 'replace'; config: PosterConfig };
 
 const COORDINATE_EPSILON = 1e-9;
@@ -50,7 +59,7 @@ export function posterReducer(state: PosterConfig, action: PosterAction): Poster
           latitude: action.latitude,
           longitude: action.longitude,
           // Keep the old place names until the reverse lookup answers, to avoid flicker.
-          displayName: previous?.displayName ?? 'Selected point',
+          displayName: previous?.displayName ?? '',
           name: previous?.name,
           city: previous?.city,
           country: previous?.country,
@@ -91,9 +100,15 @@ export function posterReducer(state: PosterConfig, action: PosterAction): Poster
       // Reset the design, but keep the place the user picked.
       return {
         ...DEFAULT_CONFIG,
+        title: action.title ?? DEFAULT_CONFIG.title,
         location: state.location,
         locationLabel: deriveLocationLabel(state.location),
       };
+
+    case 'localizeTitle':
+      return DEFAULT_TITLES.has(state.title) && state.title !== action.title
+        ? { ...state, title: action.title }
+        : state;
 
     case 'replace':
       return sanitizeConfig(action.config);

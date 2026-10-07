@@ -18,7 +18,9 @@ _The picture above is the app's fully vector SVG export._
 - **Marker:** heart, circle, pin, star or diamond in a brush, brush-outline, felt-tip, pencil or
   clean look, with adjustable size, colour and opacity.
 - **Text:** title, names, place and coordinates, with a choice of fonts.
-- **Look:** colour presets, light-blue or custom water, line weight, paper size and orientation.
+- **Look:** colour presets, light-blue or custom water, optional subway lines (own colour,
+  adjustable fade), line weight, paper size and orientation.
+- **Language:** German or English (follows the browser, switchable in the header).
 - **Download:** PNG (150 or 300 dpi), and PDF or SVG as **fully vector** files (light to
   create, sharp at any size) or as images. Designs are saved in the browser and can be shared
   as a link.

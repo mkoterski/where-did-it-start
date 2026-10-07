@@ -119,4 +119,27 @@ describe('posterReducer', () => {
     });
     expect(state.markerSize).toBe(160);
   });
+
+  it('translates only an unedited default title', () => {
+    const german = posterReducer(DEFAULT_CONFIG, {
+      type: 'localizeTitle',
+      title: 'Wo alles begann...',
+    });
+    expect(german.title).toBe('Wo alles begann...');
+    expect(
+      posterReducer(german, { type: 'localizeTitle', title: 'Where it all began...' }).title,
+    ).toBe('Where it all began...');
+    const custom = { ...DEFAULT_CONFIG, title: 'Our story' };
+    expect(posterReducer(custom, { type: 'localizeTitle', title: 'Wo alles begann...' })).toBe(
+      custom,
+    );
+  });
+
+  it('resets to the default title of the current language', () => {
+    const state = posterReducer(withBerlin({ title: 'Our story' }), {
+      type: 'reset',
+      title: 'Wo alles begann...',
+    });
+    expect(state.title).toBe('Wo alles begann...');
+  });
 });

@@ -8,8 +8,10 @@ import {
 import { VectorTile, type VectorTileFeature } from '@mapbox/vector-tile';
 import { PbfReader } from 'pbf';
 import type { PosterLayout, Rect } from '../domain/layout';
-import { buildMapStyle, mapStyleOptions, TILEJSON_URL } from '../domain/mapStyle';
+import { buildMapStyle, mapStyleOptions, SUBWAY_SOURCE, TILEJSON_URL } from '../domain/mapStyle';
+import { lngLatToWorld, posterProjection, tilesCovering } from '../domain/projection';
 import type { PosterConfig } from '../domain/types';
+import { loadSubwayLines, subwayTilesForPoster } from '../geodata/subwayLines';
 
 /**
  * Draws the poster map as SVG vectors straight from the vector tiles, evaluating the same
@@ -17,68 +19,14 @@ import type { PosterConfig } from '../domain/types';
  * the map as a print-size image, and the result stays sharp at any size.
  */
 
-/** MapLibre's vector tiles are 512 CSS px wide at their own zoom level. */
-const TILE_SIZE = 512;
-
-export interface TileId {
-  z: number;
-  /** Unwrapped column (may be outside 0…2^z near the antimeridian), used for positioning. */
-  x: number;
-  y: number;
-}
-
-export function lngLatToWorld(longitude: number, latitude: number, worldSize: number) {
-  const lat = Math.max(-85.0511, Math.min(85.0511, latitude));
-  const sin = Math.sin((lat * Math.PI) / 180);
-  return {
-    x: ((longitude + 180) / 360) * worldSize,
-    y: (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * worldSize,
-  };
-}
-
-/** Converts between poster design units and world pixels at the poster zoom. */
-export function posterProjection(config: PosterConfig, layout: PosterLayout) {
-  const location = config.location!;
-  const worldSize = TILE_SIZE * 2 ** config.zoom;
-  const centre = lngLatToWorld(location.longitude, location.latitude, worldSize);
-  return {
-    worldSize,
-    toPoster: (wx: number, wy: number): [number, number] => [
-      wx - centre.x + layout.anchor.x,
-      wy - centre.y + layout.anchor.y,
-    ],
-    toWorld: (px: number, py: number): [number, number] => [
-      px - layout.anchor.x + centre.x,
-      py - layout.anchor.y + centre.y,
-    ],
-  };
-}
-
-/** The tiles at zoom `tileZoom` that cover a rectangle given in world pixels. */
-export function tilesCovering(
-  minX: number,
-  minY: number,
-  maxX: number,
-  maxY: number,
-  worldSize: number,
-  tileZoom: number,
-): TileId[] {
-  const tileUnits = worldSize / 2 ** tileZoom;
-  const count = 2 ** tileZoom;
-  const tiles: TileId[] = [];
-  const y0 = Math.max(0, Math.floor(minY / tileUnits));
-  const y1 = Math.min(count - 1, Math.floor(maxY / tileUnits));
-  for (let x = Math.floor(minX / tileUnits); x <= Math.floor(maxX / tileUnits); x++) {
-    for (let y = y0; y <= y1; y++) tiles.push({ z: tileZoom, x, y });
-  }
-  return tiles;
-}
+export { lngLatToWorld, posterProjection, tilesCovering, type TileId } from '../domain/projection';
 
 const fmt = (value: number) => Math.round(value * 10) / 10;
 
 interface CompiledLayer {
   id: string;
   type: 'background' | 'fill' | 'line';
+  source?: string;
   sourceLayer?: string;
   filter: (feature: VectorTileFeature) => boolean;
   paint: (feature: VectorTileFeature) => Record<string, string>;
@@ -121,6 +69,7 @@ export function compileLayers(layers: LayerSpecification[], zoom: number): Compi
     compiled.push({
       id: layer.id,
       type: layer.type,
+      source: 'source' in layer ? layer.source : undefined,
       sourceLayer: 'source-layer' in layer ? layer['source-layer'] : undefined,
       filter: (feature) => filter.filter(globals, feature as never),
       paint: (feature): Record<string, string> => {
@@ -189,6 +138,30 @@ export interface VectorMapResult {
   tileCount: number;
 }
 
+/** Lines given in longitude/latitude (the subway lines), as one path in poster units. */
+function geoJsonLines(
+  lines: GeoJSON.FeatureCollection<GeoJSON.LineString | GeoJSON.MultiLineString>,
+  layer: CompiledLayer,
+  projection: ReturnType<typeof posterProjection>,
+): string {
+  const toPoster = (longitude: number, latitude: number) => {
+    const world = lngLatToWorld(longitude, latitude, projection.worldSize);
+    return projection.toPoster(world.x, world.y);
+  };
+  let d = '';
+  for (const { geometry } of lines.features) {
+    const parts = geometry.type === 'LineString' ? [geometry.coordinates] : geometry.coordinates;
+    d += featurePath(
+      parts.map((part) => part.map(([x, y]) => ({ x, y }))),
+      false,
+      toPoster,
+    );
+  }
+  if (!d) return '';
+  const paint = layer.paint({ type: 2, properties: {} } as unknown as VectorTileFeature);
+  return `<path d="${d}" fill="none" ${attributes(paint)}/>`;
+}
+
 export async function renderVectorMap(
   config: PosterConfig,
   layout: PosterLayout,
@@ -227,6 +200,9 @@ export async function renderVectorMap(
   );
 
   const layers = compileLayers(style.layers, config.zoom);
+  const subwayLines = layers.some((layer) => layer.source === SUBWAY_SOURCE)
+    ? await loadSubwayLines(subwayTilesForPoster(config, layout), fetchImpl)
+    : null;
   let defs = `<clipPath id="${prefix}-area"><rect x="${area.x}" y="${area.y}" width="${area.width}" height="${area.height}"/></clipPath>`;
   decoded.forEach(({ tile }, index) => {
     const [x, y] = projection.toPoster(tile.x * tileUnits, tile.y * tileUnits);
@@ -237,6 +213,10 @@ export async function renderVectorMap(
   for (const layer of layers) {
     if (layer.type === 'background') {
       body += `<rect x="${area.x}" y="${area.y}" width="${area.width}" height="${area.height}" ${attributes(layer.paint({} as VectorTileFeature))}/>`;
+      continue;
+    }
+    if (layer.source === SUBWAY_SOURCE) {
+      if (subwayLines) body += geoJsonLines(subwayLines, layer, projection);
       continue;
     }
     decoded.forEach(({ tile, data }, index) => {

@@ -9,7 +9,7 @@ export default defineConfig({
   build: {
     // MapLibre alone is ~1 MB minified and is needed on first paint. Export-only code
     // (jsPDF, the SVG renderer) is split into lazily loaded chunks.
-    chunkSizeWarningLimit: 1400,
+    chunkSizeWarningLimit: 1500,
   },
   test: {
     environment: 'jsdom',

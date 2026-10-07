@@ -110,6 +110,9 @@ export function sanitizeConfig(raw: unknown): PosterConfig {
     waterStyle: pickEnum(v.waterStyle, ['color', 'ink', 'tint', 'outline'] as const, d.waterStyle),
     waterColor: pickColor(v.waterColor, d.waterColor),
     showBuildings: pickBoolean(v.showBuildings, d.showBuildings),
+    showSubway: pickBoolean(v.showSubway, d.showSubway),
+    subwayFade: pickNumber(v.subwayFade, 0, 0.9, d.subwayFade),
+    subwayColor: pickColor(v.subwayColor, d.subwayColor),
     lineWeight: pickNumber(v.lineWeight, 0.4, 2.5, d.lineWeight),
     mapContrast: pickNumber(v.mapContrast, 0, 1, d.mapContrast),
 

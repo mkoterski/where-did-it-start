@@ -32,6 +32,8 @@ export interface MapStyleOptions {
   lineWeight: number;
   contrast: number;
   buildings: boolean;
+  /** Subway lines, faded towards the paper (0 = full colour), or null to leave them out. */
+  subway: { color: string; fade: number } | null;
   /** Street and place labels – helpful in the editor, never printed on the poster. */
   labels: boolean;
 }
@@ -45,6 +47,7 @@ export function mapStyleOptions(config: PosterConfig, labels: boolean): MapStyle
     lineWeight: config.lineWeight,
     contrast: config.mapContrast,
     buildings: config.showBuildings,
+    subway: config.showSubway ? { color: config.subwayColor, fade: config.subwayFade } : null,
     labels,
   };
 }
@@ -84,7 +87,21 @@ function roadLayer(
   };
 }
 
-export function buildMapStyle(options: MapStyleOptions): StyleSpecification {
+/** GeoJSON source filled with subway lines at runtime (see `geodata/subwayLines.ts`). */
+export const SUBWAY_SOURCE = 'subway';
+/** Below this zoom the subway lines would need too many detailed tiles; they are left out. */
+export const SUBWAY_MIN_ZOOM = 12;
+
+const EMPTY_LINES: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
+
+/**
+ * `subwayLines` fills the subway source up front (for exports); interactive maps start
+ * empty and fill it once the lines in view are loaded.
+ */
+export function buildMapStyle(
+  options: MapStyleOptions,
+  subwayLines: GeoJSON.FeatureCollection = EMPTY_LINES,
+): StyleSpecification {
   const { paper, ink, lineWeight: w } = options;
   const contrast = Math.min(1, Math.max(0, options.contrast));
   // Minor streets fade towards the paper colour as contrast drops.
@@ -258,6 +275,28 @@ export function buildMapStyle(options: MapStyleOptions): StyleSpecification {
     ),
   );
 
+  if (options.subway) {
+    layers.push({
+      id: 'subway',
+      type: 'line',
+      source: SUBWAY_SOURCE,
+      minzoom: SUBWAY_MIN_ZOOM,
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        // Subways mostly run under streets: their own colour keeps them visible.
+        'line-color': mixColors(options.subway.color, paper, options.subway.fade),
+        'line-width': width(
+          [
+            [12, 1],
+            [13, 1.8],
+            [16, 3.8],
+          ],
+          w,
+        ),
+      },
+    });
+  }
+
   if (options.labels) {
     const labelColor = mixColors(ink, paper, 0.3);
     layers.push(
@@ -309,6 +348,9 @@ export function buildMapStyle(options: MapStyleOptions): StyleSpecification {
     glyphs: GLYPHS_URL,
     sources: {
       openmaptiles: { type: 'vector', url: TILEJSON_URL, attribution: MAP_ATTRIBUTION_HTML },
+      ...(options.subway
+        ? { [SUBWAY_SOURCE]: { type: 'geojson' as const, data: subwayLines } }
+        : {}),
     },
     layers,
   };

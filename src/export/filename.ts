@@ -12,11 +12,15 @@ export function slugify(text: string): string {
 }
 
 /** e.g. "where-it-all-began-berlin.png" */
-export function exportFilename(config: PosterConfig, extension: string): string {
+export function exportFilename(
+  config: PosterConfig,
+  extension: string,
+  prefix = 'where-it-all-began',
+): string {
   const place = slugify(
     config.locationLabel || config.location?.city || config.location?.name || '',
   );
-  return `where-it-all-began${place ? `-${place}` : ''}.${extension}`;
+  return `${prefix}${place ? `-${place}` : ''}.${extension}`;
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {

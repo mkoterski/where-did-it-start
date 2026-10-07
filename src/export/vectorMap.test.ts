@@ -216,4 +216,58 @@ describe('renderVectorMap', () => {
       renderVectorMap(CONFIG, computeLayout(CONFIG), { fetchImpl: fetchImpl as never }),
     ).rejects.toThrow(/failed \(503\)/);
   });
+
+  it('draws subway lines from the detailed tiles when they are switched on', async () => {
+    const subwayTile = tile({
+      transportation: [
+        {
+          type: 2,
+          properties: { class: 'transit', subclass: 'subway', brunnel: 'tunnel' },
+          geometry: [
+            [
+              { x: 0, y: 1000 },
+              { x: 4096, y: 1000 },
+            ],
+          ],
+        },
+        {
+          type: 2,
+          properties: { class: 'transit', subclass: 'tram' },
+          geometry: [
+            [
+              { x: 1000, y: 0 },
+              { x: 1000, y: 4096 },
+            ],
+          ],
+        },
+      ],
+    });
+    const empty = tile({});
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
+      const path = String(url);
+      if (path.endsWith('/planet')) {
+        return new Response(
+          JSON.stringify({ tiles: ['https://tiles.test/{z}/{x}/{y}.pbf'], maxzoom: 14 }),
+        );
+      }
+      return new Response(new Uint8Array(path.includes('/14/') ? subwayTile : empty));
+    });
+    const config = { ...CONFIG, showSubway: true, subwayFade: 0 };
+
+    const result = await renderVectorMap(config, computeLayout(config), {
+      fetchImpl: fetchImpl as never,
+    });
+
+    const requested = fetchImpl.mock.calls.map(([url]) => String(url));
+    expect(requested.some((u) => u.startsWith('https://tiles.test/14/'))).toBe(true);
+    // The subway layer is drawn last, on top of the streets.
+    const subway = result.body.match(/<path d="([^"]+)" fill="none" [^>]*\/><\/g>$/);
+    expect(subway).not.toBeNull();
+    // Only the horizontal subway line is drawn, not the vertical tram line.
+    const segments = Array.from(
+      subway![1].matchAll(/M(-?[\d.]+) (-?[\d.]+)L(-?[\d.]+) (-?[\d.]+)/g),
+    );
+    expect(segments.length).toBeGreaterThan(0);
+    for (const [, , y1, , y2] of segments) expect(y1).toBe(y2);
+  });
 });

@@ -3,7 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import type { LocationSelection } from './domain/types';
+import { LANGUAGE_KEY } from './i18n/i18n';
 import { STORAGE_KEY } from './state/usePosterState';
+import { GeocodingError } from './geocoding/types';
 
 // WebGL maps cannot run in jsdom; their behaviour is covered by the browser QA checklist.
 const mapProps = vi.hoisted(() => ({
@@ -27,7 +29,8 @@ const geocoder = vi.hoisted(() => ({
   search: vi.fn(),
   reverse: vi.fn(),
 }));
-vi.mock('./geocoding/provider', () => ({ geocoder }));
+const setGeocoderLanguage = vi.hoisted(() => vi.fn());
+vi.mock('./geocoding/provider', () => ({ geocoder, setGeocoderLanguage }));
 
 const exportPoster = vi.hoisted(() => vi.fn());
 vi.mock('./export/exportPoster', () => ({ exportPoster }));
@@ -54,7 +57,7 @@ const HAMBURG: LocationSelection = {
 };
 
 function poster() {
-  return screen.getByRole('img', { name: /poster preview/i });
+  return screen.getByRole('img', { name: /poster preview|postervorschau/i });
 }
 
 function posterText() {
@@ -120,7 +123,9 @@ describe('App', () => {
     await user.type(input, 'Xyzzy{Enter}');
     expect(await screen.findByText(/No places found for “Xyzzy”/)).toBeInTheDocument();
 
-    geocoder.search.mockRejectedValueOnce(new Error('The place search could not be reached.'));
+    geocoder.search.mockRejectedValueOnce(
+      new GeocodingError('The place search could not be reached.', 'network'),
+    );
     await user.type(input, '{Enter}');
     expect(await screen.findByRole('alert')).toHaveTextContent('could not be reached');
   });
@@ -317,15 +322,17 @@ describe('App', () => {
 
   it('reports export failures instead of failing silently', async () => {
     const user = userEvent.setup();
-    const error = new Error('Some map tiles could not be loaded.');
-    error.name = 'ExportError';
+    const error = Object.assign(new Error('Some map tiles could not be loaded.'), {
+      name: 'ExportError',
+      key: 'exportError.tiles',
+    });
     exportPoster.mockRejectedValue(error);
     render(<App />);
     await searchAndSelect(user);
 
     await user.click(screen.getByRole('button', { name: 'PDF' }));
 
-    expect(await screen.findByText('Some map tiles could not be loaded.')).toBeInTheDocument();
+    expect(await screen.findByText(/Some map tiles could not be loaded/)).toBeInTheDocument();
     expect(downloadBlob).not.toHaveBeenCalled();
   });
 
@@ -372,5 +379,45 @@ describe('App', () => {
       within(screen.getByRole('group', { name: 'Shape' })).getByRole('radio', { name: 'Circle' }),
     ).toBeChecked();
     expect(window.location.hash).toBe('');
+  });
+
+  it('switches the whole interface to German and back', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    expect(document.documentElement.lang).toBe('en');
+
+    await user.click(screen.getByRole('button', { name: 'Deutsch' }));
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Wo alles begann');
+    expect(screen.getByText('Noch kein Ort gewählt.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'PNG herunterladen' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Deutsch' })).toHaveAttribute('aria-pressed', 'true');
+    // The untouched default title follows the language.
+    expect(screen.getByLabelText('Überschrift')).toHaveValue('Wo alles begann...');
+    expect(posterText()).toContain('Wo alles begann...');
+    expect(document.documentElement.lang).toBe('de');
+    expect(window.localStorage.getItem(LANGUAGE_KEY)).toBe('de');
+
+    await user.click(screen.getByRole('button', { name: 'English' }));
+    expect(screen.getByLabelText('Main phrase')).toHaveValue('Where it all began...');
+  });
+
+  it('keeps an edited title when the language changes', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const title = screen.getByLabelText('Main phrase');
+    await user.clear(title);
+    await user.type(title, 'Our story');
+
+    await user.click(screen.getByRole('button', { name: 'Deutsch' }));
+
+    expect(screen.getByLabelText('Überschrift')).toHaveValue('Our story');
+  });
+
+  it('remembers the chosen language', () => {
+    window.localStorage.setItem(LANGUAGE_KEY, 'de');
+    render(<App />);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Wo alles begann');
+    expect(screen.getByLabelText('Überschrift')).toHaveValue('Wo alles begann...');
   });
 });

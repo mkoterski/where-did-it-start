@@ -7,15 +7,19 @@ import { buildMapStyle, mapStyleOptions } from '../domain/mapStyle';
 import { exportPixelSize, paperDimensionsMm, type ExportQuality } from '../domain/paper';
 import type { PosterConfig } from '../domain/types';
 import { loadPosterFonts } from '../domain/fontLoading';
+import { loadSubwayLines, subwayTilesForPoster } from '../geodata/subwayLines';
 import { exportFilename } from './filename';
 import { embeddedFontCss } from './fonts';
+import { en, type MessageKey } from '../i18n/messages';
 
 export type ExportFormat = 'png' | 'pdf' | 'svg';
 
 export interface ExportOptions {
   format: ExportFormat;
   quality: ExportQuality;
-  onProgress?: (message: string) => void;
+  onProgress?: ProgressCallback;
+  /** File name start, e.g. "wo-alles-begann" for German. */
+  filenamePrefix?: string;
   /** Rendering timeout for the map tiles. */
   timeoutMs?: number;
   /**
@@ -35,10 +39,17 @@ export interface ExportResult {
   vector?: boolean;
 }
 
+/** Reports a step of the export; the panel shows it in the user's language. */
+export type ProgressCallback = (key: MessageKey, params?: Record<string, string | number>) => void;
+
+/** A failure with a known cause. `key` names the message to show; `message` is English. */
 export class ExportError extends Error {
-  constructor(message: string) {
-    super(message);
+  readonly key: MessageKey;
+
+  constructor(key: MessageKey) {
+    super(en[key]);
     this.name = 'ExportError';
+    this.key = key;
   }
 }
 
@@ -54,7 +65,16 @@ async function renderMap(
   timeoutMs: number,
 ): Promise<HTMLCanvasElement> {
   const location = config.location;
-  if (!location) throw new ExportError('Choose a location first.');
+  if (!location) throw new ExportError('exportError.noLocation');
+
+  let subwayLines: Awaited<ReturnType<typeof loadSubwayLines>> | undefined;
+  if (config.showSubway) {
+    try {
+      subwayLines = await loadSubwayLines(subwayTilesForPoster(config, layout));
+    } catch {
+      throw new ExportError('exportError.tiles');
+    }
+  }
 
   const container = document.createElement('div');
   Object.assign(container.style, {
@@ -74,7 +94,7 @@ async function renderMap(
     try {
       map = new maplibregl.Map({
         container,
-        style: buildMapStyle(mapStyleOptions(config, false)),
+        style: buildMapStyle(mapStyleOptions(config, false), subwayLines),
         center: [location.longitude, location.latitude],
         zoom: config.zoom,
         interactive: false,
@@ -85,9 +105,7 @@ async function renderMap(
         canvasContextAttributes: { preserveDrawingBuffer: true, antialias: true },
       });
     } catch {
-      throw new ExportError(
-        'Your browser could not create a map for the export (WebGL unavailable).',
-      );
+      throw new ExportError('exportError.webgl');
     }
     const instance = map;
     const errors: string[] = [];
@@ -95,7 +113,7 @@ async function renderMap(
 
     await new Promise<void>((resolve, reject) => {
       const timer = window.setTimeout(
-        () => reject(new ExportError('The map took too long to load. Please try again.')),
+        () => reject(new ExportError('exportError.mapTimeout')),
         timeoutMs,
       );
       instance.once('idle', () => {
@@ -105,10 +123,7 @@ async function renderMap(
     });
 
     if (errors.length > 0) {
-      throw new ExportError(
-        'Some map tiles could not be loaded, so the export would be incomplete. ' +
-          'Check your connection and try again.',
-      );
+      throw new ExportError('exportError.tiles');
     }
 
     const source = instance.getCanvas();
@@ -116,7 +131,7 @@ async function renderMap(
     copy.width = source.width;
     copy.height = source.height;
     const ctx = copy.getContext('2d');
-    if (!ctx) throw new ExportError('Could not create a drawing surface for the export.');
+    if (!ctx) throw new ExportError('exportError.canvas');
     ctx.drawImage(source, 0, 0);
     return copy;
   } finally {
@@ -150,7 +165,7 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => resolve(image);
-    image.onerror = () => reject(new ExportError('The poster text could not be rendered.'));
+    image.onerror = () => reject(new ExportError('exportError.text'));
     image.src = url;
   });
 }
@@ -158,12 +173,7 @@ function loadImage(url: string): Promise<HTMLImageElement> {
 function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number): Promise<Blob> {
   return new Promise((resolve, reject) =>
     canvas.toBlob(
-      (blob) =>
-        blob
-          ? resolve(blob)
-          : reject(
-              new ExportError('The image was too large for this browser. Try Standard quality.'),
-            ),
+      (blob) => (blob ? resolve(blob) : reject(new ExportError('exportError.tooLarge'))),
       type,
       quality,
     ),
@@ -183,8 +193,7 @@ async function composeRaster(
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext('2d');
-  if (!ctx)
-    throw new ExportError('The image was too large for this browser. Try Standard quality.');
+  if (!ctx) throw new ExportError('exportError.tooLarge');
 
   ctx.fillStyle = config.posterBackground;
   ctx.fillRect(0, 0, width, height);
@@ -224,7 +233,7 @@ async function exportVector(
   config: PosterConfig,
   layout: PosterLayout,
   format: 'pdf' | 'svg',
-  onProgress?: (message: string) => void,
+  onProgress?: ProgressCallback,
 ): Promise<Blob> {
   const { widthMm, heightMm } = paperDimensionsMm(config.paperSize, config.orientation);
   const [{ renderVectorMap }, { outlineSvgText }] = await Promise.all([
@@ -232,18 +241,15 @@ async function exportVector(
     import('./outlineText'),
   ]);
 
-  onProgress?.('Loading the map data…');
+  onProgress?.('progress.mapData');
   let map: Awaited<ReturnType<typeof renderVectorMap>>;
   try {
     map = await renderVectorMap(config, layout, { idPrefix: 'vmap' });
   } catch {
-    throw new ExportError(
-      'The map data could not be loaded, so the export would be incomplete. ' +
-        'Check your connection and try again.',
-    );
+    throw new ExportError('exportError.mapData');
   }
 
-  onProgress?.('Drawing the poster as vectors…');
+  onProgress?.('progress.vector');
   const underlay = (
     <>
       <rect width={layout.width} height={layout.height} fill={config.posterBackground} />
@@ -263,19 +269,19 @@ async function exportVector(
     />,
   );
 
-  onProgress?.('Converting the text to outlines…');
+  onProgress?.('progress.outlines');
   let svg: string;
   try {
     svg = await outlineSvgText(markup);
   } catch {
-    throw new ExportError('The poster fonts could not be loaded. Please try again.');
+    throw new ExportError('exportError.fonts');
   }
 
   if (format === 'svg') {
     return new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n', svg], { type: 'image/svg+xml' });
   }
 
-  onProgress?.('Creating the PDF…');
+  onProgress?.('progress.pdf');
   const [{ jsPDF }, { svg2pdf }] = await Promise.all([import('jspdf'), import('svg2pdf.js')]);
   const pdf = new jsPDF({
     orientation: widthMm > heightMm ? 'landscape' : 'portrait',
@@ -290,7 +296,7 @@ async function exportVector(
   document.body.appendChild(host);
   try {
     const element = host.querySelector('svg');
-    if (!element) throw new ExportError('The poster could not be prepared for the PDF.');
+    if (!element) throw new ExportError('exportError.pdf');
     await svg2pdf(element, pdf, { x: 0, y: 0, width: widthMm, height: heightMm });
   } finally {
     host.remove();
@@ -300,30 +306,44 @@ async function exportVector(
 
 export async function exportPoster(
   config: PosterConfig,
-  { format, quality, onProgress, timeoutMs = 60_000, vector = false }: ExportOptions,
+  {
+    format,
+    quality,
+    onProgress,
+    filenamePrefix,
+    timeoutMs = 60_000,
+    vector = false,
+  }: ExportOptions,
 ): Promise<ExportResult> {
-  if (!config.location) throw new ExportError('Choose a location first.');
+  if (!config.location) throw new ExportError('exportError.noLocation');
 
   const layout = computeLayout(config);
   const { width, height, dpi } = exportPixelSize(config.paperSize, config.orientation, quality);
 
   if (vector && format !== 'png') {
-    onProgress?.('Preparing fonts…');
+    onProgress?.('progress.fonts');
     // Text is measured with the real fonts so that outlines match the preview.
     await loadPosterFonts(config.titleFont, config.bodyFont);
     const blob = await exportVector(config, layout, format, onProgress);
-    return { blob, filename: exportFilename(config, format), width, height, dpi, vector: true };
+    return {
+      blob,
+      filename: exportFilename(config, format, filenamePrefix),
+      width,
+      height,
+      dpi,
+      vector: true,
+    };
   }
   const scale = width / layout.width;
 
-  onProgress?.('Preparing fonts…');
+  onProgress?.('progress.fonts');
   await loadPosterFonts(config.titleFont, config.bodyFont);
   const fontCss = await embeddedFontCss(config.titleFont, config.bodyFont);
 
-  onProgress?.(`Rendering the map at ${width} × ${height} px…`);
+  onProgress?.('progress.renderMap', { width, height });
   const mapCanvas = await renderMap(config, layout, scale, timeoutMs);
 
-  onProgress?.('Composing the poster…');
+  onProgress?.('progress.compose');
   let blob: Blob;
 
   if (format === 'svg') {
@@ -365,7 +385,7 @@ export async function exportPoster(
     if (format === 'png') {
       blob = await canvasToBlob(canvas, 'image/png');
     } else {
-      onProgress?.('Creating the PDF…');
+      onProgress?.('progress.pdf');
       const { jsPDF } = await import('jspdf');
       const { widthMm, heightMm } = paperDimensionsMm(config.paperSize, config.orientation);
       const pdf = new jsPDF({
@@ -379,5 +399,5 @@ export async function exportPoster(
     }
   }
 
-  return { blob, filename: exportFilename(config, format), width, height, dpi };
+  return { blob, filename: exportFilename(config, format, filenamePrefix), width, height, dpi };
 }
