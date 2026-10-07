@@ -289,6 +289,39 @@ describe('App', () => {
     expect(downloadBlob).not.toHaveBeenCalled();
   });
 
+  it('asks for a reload when the site was updated while the tab was open', async () => {
+    const user = userEvent.setup();
+    exportPoster.mockRejectedValue(
+      new TypeError(
+        'Failed to fetch dynamically imported module: https://example.test/assets/exportPoster-old.js',
+      ),
+    );
+    render(<App />);
+    await searchAndSelect(user);
+
+    await user.click(screen.getByRole('button', { name: 'Download PNG' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This page was updated since you opened it',
+    );
+    expect(screen.getByRole('button', { name: 'Reload page' })).toBeInTheDocument();
+    expect(downloadBlob).not.toHaveBeenCalled();
+  });
+
+  it('shows the underlying reason for unexpected export errors', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    exportPoster.mockRejectedValue(new Error('WebGL context lost'));
+    render(<App />);
+    await searchAndSelect(user);
+
+    await user.click(screen.getByRole('button', { name: 'SVG' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The export failed (WebGL context lost). Please try again, or choose Standard quality.',
+    );
+  });
+
   it('restores a shared design from the URL', () => {
     window.location.hash =
       '#poster=' +

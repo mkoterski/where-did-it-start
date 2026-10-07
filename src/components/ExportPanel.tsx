@@ -1,15 +1,24 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { encodeShareState, SHARE_PARAM } from '../domain/config';
 import { EXPORT_QUALITIES, exportPixelSize, type ExportQuality } from '../domain/paper';
 import type { PosterConfig } from '../domain/types';
 import type { ExportFormat } from '../export/exportPoster';
+import {
+  isStaleBuildError,
+  loadExporter,
+  loadFileHelpers,
+  preloadExportModules,
+} from '../export/loadExport';
+import { STORAGE_KEY } from '../state/usePosterState';
 import { SelectField } from './controls';
 
 type ExportState =
   | { status: 'idle' }
   | { status: 'working'; format: ExportFormat; message: string }
   | { status: 'done'; message: string }
-  | { status: 'error'; message: string };
+  | { status: 'error'; message: string }
+  /** The site was updated since this tab was opened; a reload fixes it. */
+  | { status: 'stale' };
 
 interface ExportPanelProps {
   config: PosterConfig;
@@ -29,13 +38,36 @@ export function ExportPanel({ config, onReset, onUndoReset }: ExportPanelProps) 
   const [shareMessage, setShareMessage] = useState('');
   const disabled = !config.location || state.status === 'working';
   const size = exportPixelSize(config.paperSize, config.orientation, quality);
+  const hasLocation = config.location !== null;
+
+  // Load the export code in the background once a download becomes possible.
+  useEffect(() => {
+    if (!hasLocation) return;
+    const idle =
+      window.requestIdleCallback ?? ((callback: () => void) => window.setTimeout(callback, 1500));
+    const cancel = window.cancelIdleCallback ?? window.clearTimeout;
+    const handle = idle(() => preloadExportModules());
+    return () => cancel(handle);
+  }, [hasLocation]);
+
+  const reloadKeepingDesign = () => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    } catch {
+      // Without storage the shared link in the address bar still restores the design.
+      const url = new URL(window.location.href);
+      url.hash = `${SHARE_PARAM}=${encodeShareState(config)}`;
+      window.history.replaceState(null, '', url.toString());
+    }
+    window.location.reload();
+  };
 
   const runExport = async (format: ExportFormat) => {
     setState({ status: 'working', format, message: 'Starting export…' });
     try {
       const [{ exportPoster }, { downloadBlob }] = await Promise.all([
-        import('../export/exportPoster'),
-        import('../export/filename'),
+        loadExporter(),
+        loadFileHelpers(),
       ]);
       const result = await exportPoster(config, {
         format,
@@ -48,12 +80,18 @@ export function ExportPanel({ config, onReset, onUndoReset }: ExportPanelProps) 
         message: `Saved ${result.filename} (${result.width} × ${result.height} px, ${result.dpi} dpi).`,
       });
     } catch (error) {
+      if (isStaleBuildError(error)) {
+        setState({ status: 'stale' });
+        return;
+      }
+      console.error('Poster export failed', error);
+      const detail = error instanceof Error && error.message ? ` (${error.message})` : '';
       setState({
         status: 'error',
         message:
           error instanceof Error && error.name === 'ExportError'
             ? error.message
-            : 'The export failed. Please try again, or choose Standard quality.',
+            : `The export failed${detail}. Please try again, or choose Standard quality.`,
       });
     }
   };
@@ -108,16 +146,28 @@ export function ExportPanel({ config, onReset, onUndoReset }: ExportPanelProps) 
           ))}
         </div>
       </div>
-      <p
-        className={`export__status${state.status === 'error' ? ' export__status--error' : ''}`}
-        role={state.status === 'error' ? 'alert' : 'status'}
-      >
-        {!config.location
-          ? 'Choose a place first to enable the download.'
-          : state.status === 'idle'
-            ? ''
-            : state.message}
-      </p>
+      {state.status === 'stale' ? (
+        <div className="export__stale" role="alert">
+          <p>
+            This page was updated since you opened it, so the download needs a quick reload. Your
+            design is kept.
+          </p>
+          <button type="button" className="button button--primary" onClick={reloadKeepingDesign}>
+            Reload page
+          </button>
+        </div>
+      ) : (
+        <p
+          className={`export__status${state.status === 'error' ? ' export__status--error' : ''}`}
+          role={state.status === 'error' ? 'alert' : 'status'}
+        >
+          {!config.location
+            ? 'Choose a place first to enable the download.'
+            : state.status === 'idle'
+              ? ''
+              : state.message}
+        </p>
+      )}
       <div className="export__secondary">
         <button type="button" className="link-button" onClick={share}>
           Copy share link
