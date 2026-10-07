@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { sanitizeConfig } from './config';
 import { DEFAULT_CONFIG } from './defaults';
 import { MARKER_SHAPES } from './shapes';
-import { markerPaths, markerPathsMarkup } from './sketch';
+import { markerHalo, markerPaths, markerPathsMarkup } from './sketch';
 
 const SYMBOLS = MARKER_SHAPES.filter((shape) => shape !== 'none');
 
@@ -76,5 +76,23 @@ describe('markerPaths', () => {
     expect(markup).toBe(
       '<path d="M0 0 L1 1" fill="none" fill-rule="evenodd" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
     );
+  });
+});
+
+describe('markerHalo', () => {
+  it('traces the drawn strokes instead of filling the whole shape', () => {
+    const outline = markerPaths('heart', 'brush', '#d7263d');
+    const halo = markerHalo(outline, '#ffffff', 9);
+    expect(halo).toHaveLength(outline.length);
+    // Same geometry as the brush stroke, so the inside of the heart stays open.
+    expect(halo[0].d).toBe(outline[0].d);
+    expect(halo[0]).toMatchObject({ fill: '#ffffff', stroke: '#ffffff', strokeWidth: 9 });
+  });
+
+  it('widens existing pen strokes for the rough styles', () => {
+    const sketch = markerPaths('heart', 'sketch', '#d7263d');
+    const halo = markerHalo(sketch, '#ffffff', 4);
+    expect(halo.every((p) => p.fill === undefined)).toBe(true);
+    expect(halo[0].strokeWidth).toBe(sketch[0].strokeWidth! + 4);
   });
 });

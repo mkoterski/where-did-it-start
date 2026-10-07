@@ -186,6 +186,21 @@ export function markerPaths(shape: MarkerShape, style: MarkerStyle, color: strin
   return paths;
 }
 
+/**
+ * A halo in `color` that hugs the drawn marker: every path is traced with a wider stroke
+ * behind it. Unlike a filled silhouette, this keeps open shapes (like the brush outline
+ * heart) see-through in the middle.
+ */
+export function markerHalo(paths: MarkerPath[], color: string, width: number): MarkerPath[] {
+  return paths.map((path) => ({
+    d: path.d,
+    fill: path.fill ? color : undefined,
+    stroke: color,
+    strokeWidth: (path.stroke ? (path.strokeWidth ?? 0) : 0) + width,
+    fillRule: path.fillRule,
+  }));
+}
+
 /** Plain SVG markup for the paths, for places that build SVG strings (editor marker). */
 export function markerPathsMarkup(paths: MarkerPath[], fillRule = 'nonzero'): string {
   return paths

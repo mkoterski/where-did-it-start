@@ -877,9 +877,9 @@ select {
   position: absolute;
   inset: 4px;
   border-radius: 50%;
-  border: 2px solid currentColor;
-  color: var(--accent);
-  animation: marker-pulse 1.6s ease-out 4;
+  border: 1.5px solid currentColor;
+  color: var(--text);
+  animation: marker-pulse 1.4s ease-out 2;
   pointer-events: none;
 }
 

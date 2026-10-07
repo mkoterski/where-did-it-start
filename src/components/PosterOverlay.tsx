@@ -5,7 +5,7 @@ import { shapeTransformAttribute, type PosterLayout } from '../domain/layout';
 import { MAP_ATTRIBUTION_TEXT } from '../domain/mapStyle';
 import { fitFontSize } from '../domain/measure';
 import { getShape } from '../domain/shapes';
-import { markerPaths } from '../domain/sketch';
+import { markerHalo, markerPaths } from '../domain/sketch';
 import type { FontFace } from '../domain/typography';
 import { DETAIL_FONT, fontStack, getBodyFont, getTitleFont } from '../domain/typography';
 import type { PosterConfig } from '../domain/types';
@@ -187,17 +187,25 @@ export function PosterOverlay({
             transform={shapeTransformAttribute(layout.marker)}
             opacity={config.markerOpacity < 1 ? config.markerOpacity : undefined}
           >
-            {config.markerOutline ? (
-              // A halo in the outline colour behind the symbol.
-              <path
-                d={marker.path}
-                fill={config.markerOutlineColor}
-                fillRule={marker.fillRule}
-                stroke={config.markerOutlineColor}
-                strokeWidth={(config.markerOutlineWidth * 2) / layout.marker.scale}
-                strokeLinejoin="round"
-              />
-            ) : null}
+            {config.markerOutline
+              ? // A halo in the outline colour that follows the drawn strokes.
+                markerHalo(
+                  markerPaths(config.markerShape, config.markerStyle, config.markerColor),
+                  config.markerOutlineColor,
+                  (config.markerOutlineWidth * 2) / layout.marker.scale,
+                ).map((path, index) => (
+                  <path
+                    key={`halo-${index}`}
+                    d={path.d}
+                    fill={path.fill ?? 'none'}
+                    fillRule={path.fillRule ?? marker.fillRule}
+                    stroke={path.stroke}
+                    strokeWidth={path.strokeWidth}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                ))
+              : null}
             {markerPaths(config.markerShape, config.markerStyle, config.markerColor).map(
               (path, index) => (
                 <path

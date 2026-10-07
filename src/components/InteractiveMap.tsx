@@ -12,7 +12,7 @@ import { ZOOM_RANGE } from '../domain/defaults';
 import { editorKeyholePixels, type PosterLayout } from '../domain/layout';
 import { buildMapStyle, mapStyleOptions } from '../domain/mapStyle';
 import { getShape, markerAnchor } from '../domain/shapes';
-import { markerPaths, markerPathsMarkup } from '../domain/sketch';
+import { markerHalo, markerPaths, markerPathsMarkup } from '../domain/sketch';
 import type { MarkerShape, MarkerStyle, PosterConfig } from '../domain/types';
 
 export interface InteractiveMapHandle {
@@ -64,9 +64,9 @@ function markerSvg(shape: MarkerShape, style: MarkerStyle, color: string): strin
   const body =
     shape === 'none'
       ? `<path d="${def.path}" fill="none" stroke="${color}" stroke-width="10"/>`
-      : // A white halo keeps the symbol visible on dark map areas.
-        `<path d="${def.path}" fill="#fff" fill-rule="${fillRule}" stroke="#fff" ` +
-        `stroke-width="12" stroke-linejoin="round"/>` +
+      : // A thin white halo around the drawn strokes keeps the symbol visible on dark map
+        // areas without filling in open shapes.
+        markerPathsMarkup(markerHalo(markerPaths(shape, style, color), '#fff', 9), fillRule) +
         markerPathsMarkup(markerPaths(shape, style, color), fillRule);
   return (
     `<span class="editor-marker__icon">` +
@@ -374,6 +374,14 @@ export function InteractiveMap({ config, layout, onPick, onZoomChange, ref }: In
     updateOverlay();
     return () => cancelAnimationFrame(frame);
   }, [markerShape, markerStyle, markerColor, location === null]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Mirror the poster's marker opacity, but never let the handle disappear completely.
+  const markerOpacity = config.markerOpacity;
+  const hasMarker = location !== null;
+  useEffect(() => {
+    const icon = markerRef.current?.getElement().querySelector<HTMLElement>('.editor-marker__icon');
+    if (icon) icon.style.opacity = String(Math.max(0.35, markerOpacity));
+  }, [markerOpacity, markerShape, markerStyle, markerColor, hasMarker]);
 
   // Follow location changes (search, typed coordinates, drag) without fighting the user.
   const previousLocation = useRef(location);
