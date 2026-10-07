@@ -6,8 +6,11 @@ export type MarkerShape = 'heart' | 'circle' | 'pin' | 'star' | 'diamond' | 'non
 
 export type ShapeId = FrameShape | MarkerShape;
 
-/** How the marker symbol is rendered: vector-clean, felt-tip pen, or pencil sketch. */
-export type MarkerStyle = 'clean' | 'drawn' | 'sketch';
+/**
+ * How the marker symbol is rendered: brush pen (filled or as a single outline stroke),
+ * felt-tip pen, pencil sketch, or vector-clean.
+ */
+export type MarkerStyle = 'brush-fill' | 'brush' | 'drawn' | 'sketch' | 'clean';
 
 export type OutsideMode = 'hidden' | 'faded' | 'visible';
 export type CoordinateFormat = 'decimal' | 'dms';

@@ -204,7 +204,7 @@ export function PosterOverlay({
                   key={index}
                   d={path.d}
                   fill={path.fill ?? 'none'}
-                  fillRule={marker.fillRule}
+                  fillRule={path.fillRule ?? marker.fillRule}
                   stroke={path.stroke}
                   strokeWidth={path.strokeWidth}
                   strokeLinecap={path.stroke ? 'round' : undefined}

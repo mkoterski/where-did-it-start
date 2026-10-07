@@ -7,10 +7,28 @@ import { markerPaths, markerPathsMarkup } from './sketch';
 const SYMBOLS = MARKER_SHAPES.filter((shape) => shape !== 'none');
 
 describe('markerPaths', () => {
-  it('defaults to the hand-drawn look', () => {
-    expect(DEFAULT_CONFIG.markerStyle).toBe('drawn');
-    expect(sanitizeConfig({ markerStyle: 'crayon' }).markerStyle).toBe('drawn');
+  it('defaults to the brush look', () => {
+    expect(DEFAULT_CONFIG.markerStyle).toBe('brush-fill');
+    expect(sanitizeConfig({ markerStyle: 'crayon' }).markerStyle).toBe('brush-fill');
+    expect(sanitizeConfig({ markerStyle: 'brush' }).markerStyle).toBe('brush');
     expect(sanitizeConfig({ markerStyle: 'clean' }).markerStyle).toBe('clean');
+  });
+
+  it('draws the brush heart as one stroke, with dry-brush sweeps when filled', () => {
+    const outline = markerPaths('heart', 'brush', '#d7263d');
+    expect(outline).toHaveLength(1);
+    expect(outline[0]).toMatchObject({ fill: '#d7263d', fillRule: 'nonzero' });
+
+    const filled = markerPaths('heart', 'brush-fill', '#d7263d');
+    expect(filled.length).toBeGreaterThan(8);
+    expect(filled.every((p) => p.fill === '#d7263d' && !p.stroke)).toBe(true);
+  });
+
+  it.each(SYMBOLS)('paints a %s with the brush', (shape) => {
+    expect(markerPaths(shape, 'brush', '#000000').length).toBeGreaterThan(0);
+    expect(markerPaths(shape, 'brush-fill', '#000000').length).toBeGreaterThan(
+      markerPaths(shape, 'brush', '#000000').length,
+    );
   });
 
   it('returns the plain shape for the clean style', () => {
@@ -33,11 +51,11 @@ describe('markerPaths', () => {
     expect(paths.length).toBeGreaterThan(0);
   });
 
-  it('is deterministic, so preview and export look identical', () => {
-    const first = JSON.stringify(markerPaths('star', 'drawn', '#123456'));
+  it.each(['drawn', 'brush-fill'] as const)('is deterministic (%s)', (style) => {
+    const first = JSON.stringify(markerPaths('star', style, '#123456'));
     // Different colour first to make sure caching does not leak between keys.
-    markerPaths('star', 'drawn', '#654321');
-    expect(JSON.stringify(markerPaths('star', 'drawn', '#123456'))).toBe(first);
+    markerPaths('star', style, '#654321');
+    expect(JSON.stringify(markerPaths('star', style, '#123456'))).toBe(first);
   });
 
   it('works with currentColor for the picker icons', () => {

@@ -4,7 +4,7 @@ A single-page app for creating a personalised **“where it all began…”** ma
 the place your story started, frame it in a heart (or another shape), add your names and
 download a print-ready PNG, PDF or SVG.
 
-![Example poster: black-and-white map of Berlin around Potsdamer Platz in a heart, a red heart marker, “Where it all began…”, “Anita & Matthias” and “Berlin 52.50971°N 13.37605°E”](docs/example-poster.png)
+![Example poster: black-and-white map of Berlin around Potsdamer Platz in a heart, a red brush-painted heart marker, “Where it all began…”, “Anita & Matthias” and “Berlin 52.50971°N 13.37605°E”](docs/example-poster.png)
 
 ## Features
 
@@ -19,10 +19,12 @@ download a print-ready PNG, PDF or SVG.
   hexagon or star. Outside the shape the map can be hidden, faded or fully visible. The editor
   map shows the same keyhole, anchored to the selected point, so what you see there is what is
   printed.
-- **Marker** on the exact spot: heart, circle, pin, star, diamond or none, drawn **by hand**
-  (felt-tip look, the default), as a **pencil sketch**, or **clean**, with colour, size, opacity,
-  outline and shadow. The hand-drawn wobble is generated with
-  [rough.js](https://roughjs.com) from a fixed seed, so preview and exports always match.
+- **Marker** on the exact spot: heart, circle, pin, star, diamond or none, painted with a
+  **brush** (dry-brush filled, the default), as a single **brush outline** stroke (the heart is
+  drawn in one stroke with a crossing tail), **felt-tip**, **pencil** or **clean**, with colour,
+  size, opacity, outline and shadow. Brush strokes come from a small built-in brush engine
+  (`src/domain/brush.ts`), the felt-tip and pencil looks from [rough.js](https://roughjs.com);
+  both use fixed seeds, so preview and exports always match.
 - **Text**: main phrase, names, place label (filled in from the selected place, editable),
   coordinates in decimal (`48.15838°N 11.50194°E`) or degrees/minutes/seconds, four title
   fonts, four fonts for the names and place line (modern sans, elegant serif, vintage sans,

@@ -318,7 +318,7 @@ export function ShapeIcon({
             key={index}
             d={p.d}
             fill={p.fill ?? 'none'}
-            fillRule={fillRule}
+            fillRule={p.fillRule ?? fillRule}
             stroke={p.stroke}
             strokeWidth={p.strokeWidth}
             strokeLinecap="round"

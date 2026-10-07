@@ -151,8 +151,10 @@ export function MarkerSection({ config, update }: SectionProps) {
             value={config.markerStyle}
             onChange={(markerStyle) => update({ markerStyle })}
             options={[
-              { value: 'drawn', label: 'Hand-drawn' },
-              { value: 'sketch', label: 'Pencil sketch' },
+              { value: 'brush-fill', label: 'Brush' },
+              { value: 'brush', label: 'Brush outline' },
+              { value: 'drawn', label: 'Felt-tip' },
+              { value: 'sketch', label: 'Pencil' },
               { value: 'clean', label: 'Clean' },
             ]}
           />
